@@ -9,9 +9,25 @@ const RANK_COLOR = (rank) => {
   return { bg: '#f3f4f6', text: '#374151', label: `${rank}위` };
 };
 
+function EyeIcon({ open }) {
+  return open ? (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ) : (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  );
+}
+
 export default function RankChecker() {
   const [naverId, setNaverId] = useState('');
   const [naverPw, setNaverPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +47,7 @@ export default function RankChecker() {
 
     try {
       setLoadingMsg('네이버 로그인 중...');
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 400));
       setLoadingMsg('블로그 ID 확인 중...');
 
       const res = await fetch('/api/naver/login', {
@@ -56,7 +72,6 @@ export default function RankChecker() {
   const checkRank = async (post, keyword) => {
     const key = `${post.logNo}_${keyword}`;
     setCheckingRank(prev => ({ ...prev, [key]: true }));
-
     try {
       const res = await fetch('/api/naver/rank', {
         method: 'POST',
@@ -64,10 +79,7 @@ export default function RankChecker() {
         body: JSON.stringify({ keyword, blogId: blogData.blogId, logNo: post.logNo }),
       });
       const data = await res.json();
-      setRankResults(prev => ({
-        ...prev,
-        [key]: { rank: data.rank, found: data.found },
-      }));
+      setRankResults(prev => ({ ...prev, [key]: { rank: data.rank, found: data.found } }));
     } catch {
       setRankResults(prev => ({ ...prev, [key]: { rank: null, found: false } }));
     } finally {
@@ -92,8 +104,6 @@ export default function RankChecker() {
 
   return (
     <div style={{ fontFamily: 'Pretendard, -apple-system, sans-serif', maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
-
-      {/* 헤더 */}
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 4 }}>
           네이버 블로그 노출 순위 체커
@@ -103,7 +113,6 @@ export default function RankChecker() {
         </p>
       </div>
 
-      {/* 로그인 박스 */}
       {!blogData && (
         <div style={{
           background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12,
@@ -117,7 +126,7 @@ export default function RankChecker() {
               </label>
               <input
                 type="text"
-                placeholder="네이버 아이디 입력"
+                placeholder="네이버 아이디"
                 value={naverId}
                 onChange={e => setNaverId(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
@@ -131,17 +140,30 @@ export default function RankChecker() {
               <label style={{ fontSize: 12, color: '#6b7280', display: 'block', marginBottom: 5 }}>
                 네이버 비밀번호
               </label>
-              <input
-                type="password"
-                placeholder="비밀번호 입력"
-                value={naverPw}
-                onChange={e => setNaverPw(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                style={{
-                  width: '100%', height: 40, border: '1px solid #d1d5db', borderRadius: 8,
-                  padding: '0 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="비밀번호"
+                  value={naverPw}
+                  onChange={e => setNaverPw(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  style={{
+                    width: '100%', height: 40, border: '1px solid #d1d5db', borderRadius: 8,
+                    padding: '0 40px 0 12px', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  onClick={() => setShowPw(v => !v)}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#9ca3af', display: 'flex', alignItems: 'center', padding: 0,
+                  }}
+                  title={showPw ? '비밀번호 숨기기' : '비밀번호 보기'}
+                >
+                  <EyeIcon open={showPw} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -149,13 +171,15 @@ export default function RankChecker() {
             onClick={handleLogin}
             disabled={loading}
             style={{
-              width: '100%', height: 42, background: loading ? '#93c5fd' : '#03c75a',
-              color: '#fff', border: 'none', borderRadius: 8, fontSize: 15,
-              fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
+              width: '100%', height: 42,
+              background: loading ? '#86efac' : '#03c75a',
+              color: '#fff', border: 'none', borderRadius: 8,
+              fontSize: 15, fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'background 0.2s',
             }}
           >
-            {loading ? loadingMsg || '처리 중...' : '로그인 후 블로그 글 불러오기'}
+            {loading ? `⏳ ${loadingMsg}` : '로그인 후 블로그 글 불러오기'}
           </button>
 
           {error && (
@@ -163,7 +187,7 @@ export default function RankChecker() {
               marginTop: 10, padding: '10px 12px', background: '#fef2f2',
               border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#dc2626',
             }}>
-              {error}
+              ⚠️ {error}
             </div>
           )}
 
@@ -176,10 +200,8 @@ export default function RankChecker() {
         </div>
       )}
 
-      {/* 결과 화면 */}
       {blogData && (
         <>
-          {/* 상단 정보 + 로그아웃 */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10,
@@ -204,7 +226,6 @@ export default function RankChecker() {
             </button>
           </div>
 
-          {/* 통계 카드 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: '1.5rem' }}>
             {[
               { label: '전체 글', value: stats.total, color: '#111' },
@@ -222,16 +243,14 @@ export default function RankChecker() {
             ))}
           </div>
 
-          {/* 글 목록 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {blogData.posts.map((post, pi) => (
               <div key={post.logNo} style={{
-                background: '#fff', border: '1px solid #e5e7eb',
-                borderRadius: 12, overflow: 'hidden',
+                background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden',
               }}>
-                {/* 글 헤더 */}
                 <div style={{
-                  padding: '12px 16px', borderBottom: post.keywords?.length ? '1px solid #f3f4f6' : 'none',
+                  padding: '12px 16px',
+                  borderBottom: post.keywords?.length ? '1px solid #f3f4f6' : 'none',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                 }}>
                   <div style={{ flex: 1 }}>
@@ -241,9 +260,7 @@ export default function RankChecker() {
                         padding: '2px 8px', borderRadius: 99, fontWeight: 600,
                       }}>{pi + 1}</span>
                       <a
-                        href={post.link}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={post.link} target="_blank" rel="noreferrer"
                         style={{ fontSize: 15, fontWeight: 600, color: '#111', textDecoration: 'none' }}
                       >
                         {post.title}
@@ -258,8 +275,8 @@ export default function RankChecker() {
                       onClick={() => checkAllRanks(post)}
                       style={{
                         fontSize: 12, color: '#fff', background: '#6366f1',
-                        border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer',
-                        whiteSpace: 'nowrap', marginLeft: 10,
+                        border: 'none', borderRadius: 6, padding: '5px 12px',
+                        cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: 10,
                       }}
                     >
                       전체 순위 확인
@@ -267,7 +284,6 @@ export default function RankChecker() {
                   )}
                 </div>
 
-                {/* 키워드 + 순위 */}
                 {post.keywords?.length > 0 ? (
                   <div style={{ padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {post.keywords.map(kw => {
@@ -275,7 +291,6 @@ export default function RankChecker() {
                       const result = rankResults[key];
                       const isChecking = checkingRank[key];
                       const color = result ? RANK_COLOR(result.rank) : null;
-
                       return (
                         <div
                           key={kw}
@@ -309,7 +324,7 @@ export default function RankChecker() {
                   </div>
                 ) : (
                   <div style={{ padding: '10px 16px', fontSize: 13, color: '#9ca3af' }}>
-                    태그 없음 (키워드 순위 확인 불가)
+                    태그 없음 — 키워드 순위 확인 불가
                   </div>
                 )}
               </div>
