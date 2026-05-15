@@ -3,12 +3,39 @@ import { fetchPostsByRSS, fetchPostTags } from '../../../lib/naverBlog';
 export const config = { api: { responseLimit: false }, maxDuration: 60 };
 
 // 제목에서 키워드 추출 (AI 없을 때 fallback)
+// 단어 1개씩 쪼개면 너무 일반적 → 2단어 조합으로 실제 검색어에 가깝게
 function extractFromTitle(title) {
-  return title
+  const stopWords = new Set([
+    '그리고','하지만','또는','때문에','그래서','하는','있는','없는','되는','하기',
+    '위한','대한','통한','관한','이후','이전','다음','처럼','보다','까지',
+    '완벽','가이드','방법','정리','추천','소개','총정리','모음','리스트','후기','리뷰',
+  ]);
+
+  const words = title
     .replace(/[^\w\s가-힣]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length >= 2 && w.length <= 10)
-    .slice(0, 4);
+    .filter(w => w.length >= 2 && !stopWords.has(w));
+
+  const combos = [];
+
+  // 2단어 인접 조합 (실제 사람들이 검색하는 패턴)
+  for (let i = 0; i < words.length - 1 && combos.length < 3; i++) {
+    const a = words[i], b = words[i + 1];
+    const combo = `${a} ${b}`;
+    if (combo.length <= 16 && a.length >= 2 && b.length >= 2) {
+      combos.push(combo);
+    }
+  }
+
+  // 2단어 조합이 부족하면 긴 단어 단독으로 보완
+  if (combos.length < 2) {
+    words
+      .filter(w => w.length >= 4)
+      .slice(0, 3)
+      .forEach(w => { if (!combos.includes(w)) combos.push(w); });
+  }
+
+  return [...new Set(combos)].slice(0, 3);
 }
 
 // Claude AI로 키워드 추출
