@@ -86,6 +86,167 @@ function exportCSV(posts, rankResults) {
   a.download='naver-rank.csv'; a.click();
 }
 
+// SEO 종합 점수 계산
+function calcSEOScore(allRows) {
+  if (!allRows.length) return { score: 0, grade: 'D', color: '#ef4444', label: '데이터 없음' };
+  const checked = allRows.filter(r => r.rank !== undefined || r.found !== undefined);
+  if (!checked.length) return { score: 0, grade: 'D', color: '#ef4444', label: '분석 중' };
+  const top1  = allRows.filter(r => r.found && r.rank === 1).length;
+  const top3  = allRows.filter(r => r.found && r.rank <= 3).length;
+  const top10 = allRows.filter(r => r.found && r.rank <= 10).length;
+  const top30 = allRows.filter(r => r.found && r.rank <= 30).length;
+  const exposed = allRows.filter(r => r.found).length;
+  const total = checked.length;
+  const expRate = exposed / total;
+  let score = 0;
+  score += top1  * 12;
+  score += (top3  - top1)  * 8;
+  score += (top10 - top3)  * 5;
+  score += (top30 - top10) * 2;
+  score += expRate * 30;
+  score = Math.min(100, Math.round(score));
+  let grade, color, label;
+  if (score >= 80) { grade='S'; color='#f59e0b'; label='최상위 블로그'; }
+  else if (score >= 60) { grade='A'; color='#10b981'; label='우수한 SEO 상태'; }
+  else if (score >= 40) { grade='B'; color='#3b82f6'; label='양호 - 개선 여지 있음'; }
+  else if (score >= 20) { grade='C'; color='#f97316'; label='개선이 필요한 상태'; }
+  else { grade='D'; color='#ef4444'; label='즉각적인 SEO 개선 필요'; }
+  return { score, grade, color, label };
+}
+
+// PDF 보고서 생성
+function generatePDF(blogId, posts, rankResults) {
+  const allRows = posts.flatMap(p =>
+    (p.keywords||[]).map(kw => {
+      const r = rankResults[`${p.logNo}_${kw}`];
+      return { post: p, kw, rank: r?.rank, found: r?.found ?? false, total: r?.total ?? 0 };
+    })
+  );
+  const seo = calcSEOScore(allRows);
+  const top3list   = allRows.filter(r => r.found && r.rank <= 3).sort((a,b)=>a.rank-b.rank);
+  const top10list  = allRows.filter(r => r.found && r.rank > 3 && r.rank <= 10).sort((a,b)=>a.rank-b.rank);
+  const opps       = allRows.filter(r => !r.found && r.total > 0 && r.total < 3000 && !titleContains(r.post.title, r.kw));
+  const easyWins   = allRows.filter(r => !r.found && r.total > 0 && r.total < 3000 && titleContains(r.post.title, r.kw));
+  const highComp   = allRows.filter(r => !r.found && r.total >= 150000);
+  const midRange   = allRows.filter(r => !r.found && r.total >= 3000 && r.total < 150000);
+  const now = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  const kwRow = (r, i) => `
+    <tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px 12px;font-size:13px;color:#666">${i+1}</td>
+      <td style="padding:8px 12px;font-size:13px;font-weight:700">${r.kw}</td>
+      <td style="padding:8px 12px;font-size:13px">${r.found ? `<span style="color:#ec4899;font-weight:800">${r.rank}위</span>` : '<span style="color:#999">미노출</span>'}</td>
+      <td style="padding:8px 12px;font-size:12px;color:#666;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.post.title}</td>
+    </tr>`;
+
+  const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+  <title>블로그 순위 분석 리포트 - ${blogId}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#1e1e2e;background:#fff;padding:40px;max-width:820px;margin:0 auto}
+    .cover{text-align:center;padding:48px 0 40px;border-bottom:3px solid #ec4899;margin-bottom:36px}
+    .cover-badge{display:inline-block;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff;padding:6px 18px;border-radius:99px;font-size:12px;font-weight:700;margin-bottom:16px}
+    .cover-title{font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:8px}
+    .cover-sub{font-size:14px;color:#888;margin-bottom:20px}
+    .score-box{display:inline-flex;align-items:center;gap:16px;background:#fdf2f8;border:2px solid #ec4899;border-radius:16px;padding:16px 32px}
+    .score-grade{font-size:48px;font-weight:900;color:#ec4899;line-height:1}
+    .score-num{font-size:14px;color:#666;margin-top:4px}
+    .score-label{font-size:15px;font-weight:700;color:#333}
+    .section{margin-bottom:32px}
+    .section-title{font-size:16px;font-weight:800;color:#1e1e2e;padding:10px 16px;background:#fdf2f8;border-left:4px solid #ec4899;border-radius:0 8px 8px 0;margin-bottom:14px}
+    .kv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+    .kv-card{background:#f8f9fa;border-radius:10px;padding:14px;text-align:center}
+    .kv-val{font-size:26px;font-weight:900;color:#ec4899}
+    .kv-label{font-size:11px;color:#888;margin-top:4px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#fdf2f8;padding:9px 12px;font-size:12px;font-weight:700;color:#888;text-align:left}
+    .insight-block{background:#f8f9fa;border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:3px solid #ec4899}
+    .insight-block-title{font-size:13px;font-weight:800;color:#333;margin-bottom:4px}
+    .insight-block-body{font-size:12px;color:#666;line-height:1.8}
+    .action-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+    .action-num{width:24px;height:24px;border-radius:50%;background:#ec4899;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .action-text{font-size:13px;color:#333;line-height:1.7}
+    .footer{margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:11px;color:#bbb;text-align:center}
+    @media print{body{padding:20px}@page{margin:15mm}}
+  </style></head><body>
+  <div class="cover">
+    <div class="cover-badge">📊 NAVER BLOG SEO REPORT</div>
+    <div class="cover-title">블로그 순위 종합 분석 리포트</div>
+    <div class="cover-sub">블로그 ID: <strong>${blogId}</strong> &nbsp;·&nbsp; 분석일시: ${now}</div>
+    <div class="score-box">
+      <div><div class="score-grade" style="color:${seo.color}">${seo.grade}</div><div class="score-num">${seo.score}점 / 100점</div></div>
+      <div style="width:1px;height:50px;background:#e5e7eb"></div>
+      <div><div class="score-label">${seo.label}</div><div style="font-size:12px;color:#888;margin-top:4px">전체 ${posts.length}개 글 · ${allRows.length}개 키워드 분석</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📈 핵심 지표 요약</div>
+    <div class="kv-grid">
+      <div class="kv-card"><div class="kv-val">${posts.length}</div><div class="kv-label">전체 글</div></div>
+      <div class="kv-card"><div class="kv-val" style="color:#f59e0b">${top3list.length}</div><div class="kv-label">TOP 3 키워드</div></div>
+      <div class="kv-card"><div class="kv-val" style="color:#a855f7">${top3list.length+top10list.length}</div><div class="kv-label">TOP 10 키워드</div></div>
+      <div class="kv-card"><div class="kv-val" style="color:#10b981">${allRows.filter(r=>r.found).length}</div><div class="kv-label">노출 키워드</div></div>
+    </div>
+  </div>
+
+  ${top3list.length ? `<div class="section">
+    <div class="section-title">🥇 상위 3위 노출 키워드</div>
+    <table><thead><tr><th>#</th><th>키워드</th><th>순위</th><th>글 제목</th></tr></thead><tbody>
+    ${top3list.map(kwRow).join('')}
+    </tbody></table>
+  </div>` : ''}
+
+  ${top10list.length ? `<div class="section">
+    <div class="section-title">🏆 TOP 4~10위 노출 키워드</div>
+    <table><thead><tr><th>#</th><th>키워드</th><th>순위</th><th>글 제목</th></tr></thead><tbody>
+    ${top10list.map(kwRow).join('')}
+    </tbody></table>
+  </div>` : ''}
+
+  ${opps.length ? `<div class="section">
+    <div class="section-title">🎯 즉시 활용 가능한 기회 키워드 (경쟁 낮음 + 제목 미포함)</div>
+    <div class="insight-block"><div class="insight-block-title">📌 활용 방법</div>
+    <div class="insight-block-body">아래 키워드들은 경쟁자가 3,000명 미만인데 아직 내 글 제목에 포함되어 있지 않아요.<br>해당 글 제목에 키워드를 추가하는 것만으로 상위 노출 가능성이 크게 높아집니다.</div></div>
+    <table><thead><tr><th>#</th><th>키워드</th><th>현재 순위</th><th>글 제목</th></tr></thead><tbody>
+    ${opps.slice(0,10).map(kwRow).join('')}
+    </tbody></table>
+  </div>` : ''}
+
+  ${easyWins.length ? `<div class="section">
+    <div class="section-title">📝 글 품질 보강 필요 (경쟁 낮음 + 제목 포함 중)</div>
+    <div class="insight-block"><div class="insight-block-title">📌 활용 방법</div>
+    <div class="insight-block-body">제목엔 키워드가 있는데 노출이 안 되고 있어요.<br>본문에서 해당 키워드를 2~3회 자연스럽게 추가하고, 글 길이를 1,500자 이상으로 늘려보세요.</div></div>
+    <table><thead><tr><th>#</th><th>키워드</th><th>현재 순위</th><th>글 제목</th></tr></thead><tbody>
+    ${easyWins.slice(0,10).map(kwRow).join('')}
+    </tbody></table>
+  </div>` : ''}
+
+  ${highComp.length ? `<div class="section">
+    <div class="section-title">⚠️ 경쟁 포화 키워드 (교체 권장)</div>
+    <div class="insight-block"><div class="insight-block-title">📌 전략 제안</div>
+    <div class="insight-block-body">검색 결과가 15만 개 이상인 고경쟁 키워드예요. 대형 블로그와 경쟁해야 하므로 단기간 상위 노출이 어렵습니다.<br>예: "맛집" → "강릉 중앙시장 현지인 맛집", "카페" → "성수동 감성 테라스 카페" 처럼 더 구체적으로 바꾸세요.</div></div>
+  </div>` : ''}
+
+  <div class="section">
+    <div class="section-title">✅ 우선순위별 액션 플랜</div>
+    ${[
+      opps.length ? `<div class="action-item"><div class="action-num">1</div><div class="action-text"><strong>[즉시 실행]</strong> 기회 키워드 ${opps.length}개를 해당 글 제목에 추가하세요. 제목 앞부분에 키워드를 자연스럽게 배치하면 효과가 큽니다.</div></div>` : '',
+      easyWins.length ? `<div class="action-item"><div class="action-num">${opps.length?2:1}</div><div class="action-text"><strong>[이번 주 실행]</strong> 글 품질 보강 키워드 ${easyWins.length}개의 본문을 업데이트하세요. 키워드를 본문에 2~3회 추가하고 내부 링크를 연결하세요.</div></div>` : '',
+      midRange.length ? `<div class="action-item"><div class="action-num">${[opps.length,easyWins.length].filter(Boolean).length+1}</div><div class="action-text"><strong>[중기 전략]</strong> 중간 경쟁도 키워드 ${midRange.length}개는 글의 전문성을 높이는 방향으로 접근하세요. 이미지, 표, 상세 설명을 보강해 체류 시간을 늘리세요.</div></div>` : '',
+      highComp.length ? `<div class="action-item"><div class="action-num">${[opps.length,easyWins.length,midRange.length].filter(Boolean).length+1}</div><div class="action-text"><strong>[키워드 교체]</strong> 포화 키워드 ${highComp.length}개는 더 구체적인 롱테일 키워드로 교체를 검토하세요. 구체적일수록 타겟이 명확해지고 전환율도 높아집니다.</div></div>` : '',
+    ].filter(Boolean).join('')}
+  </div>
+
+  <div class="footer">본 리포트는 블로그 순위 체커 자동 분석 결과입니다 · ${now} 기준</div>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 800);
+}
+
 /* ─────────── 메인 ─────────── */
 export default function RankChecker() {
   const [theme, setTheme]         = useState('dark');
@@ -498,9 +659,14 @@ export default function RankChecker() {
             </div>
             <div className="rc-header-actions">
               {isDone && (
-                <button className="btn-ghost" onClick={() => exportCSV(posts, rankResults)} style={{ height:36 }}>
-                  📥 CSV
-                </button>
+                <>
+                  <button className="btn-ghost" onClick={() => generatePDF(blogId, posts, rankResults)} style={{ height:36 }}>
+                    📄 PDF 보고서
+                  </button>
+                  <button className="btn-ghost" onClick={() => exportCSV(posts, rankResults)} style={{ height:36 }}>
+                    📊 엑셀 저장
+                  </button>
+                </>
               )}
               <button className="theme-btn" title="AI 설정" onClick={() => setShowSettings(true)} style={{fontSize:18}}>
                 ⚙️
@@ -716,31 +882,66 @@ export default function RankChecker() {
                     const allRows = posts.flatMap(p =>
                       (p.keywords||[]).map(kw => {
                         const r = rankResults[`${p.logNo}_${kw}`];
-                        return { post: p, kw, rank: r?.rank, found: r?.found, total: r?.total };
+                        return { post: p, kw, rank: r?.rank, found: r?.found ?? false, total: r?.total ?? 0 };
                       })
                     );
-
-                    const top3List    = allRows.filter(r => r.found && r.rank <= 3);
+                    const seo         = calcSEOScore(allRows);
+                    const top3List    = allRows.filter(r => r.found && r.rank <= 3).sort((a,b)=>a.rank-b.rank);
+                    const top10List   = allRows.filter(r => r.found && r.rank > 3 && r.rank <= 10).sort((a,b)=>a.rank-b.rank);
                     const opportunities = allRows.filter(r => !r.found && r.total > 0 && r.total < 3000 && !titleContains(r.post.title, r.kw));
                     const easyWins    = allRows.filter(r => !r.found && r.total > 0 && r.total < 3000 && titleContains(r.post.title, r.kw));
+                    const midRange    = allRows.filter(r => !r.found && r.total >= 3000 && r.total < 150000);
                     const highComp    = allRows.filter(r => !r.found && r.total >= 150000);
+                    const expRate     = allRows.length ? Math.round(allRows.filter(r=>r.found).length / allRows.length * 100) : 0;
 
                     return (
                       <div className="report-card fade-up">
-                        <div className="report-title">📋 분석 리포트</div>
+                        {/* 헤더 + 점수 */}
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:18}}>
+                          <div className="report-title" style={{marginBottom:0}}>📋 블로그 SEO 분석 리포트</div>
+                          <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <div style={{textAlign:'center'}}>
+                              <div style={{fontSize:32,fontWeight:900,color:seo.color,lineHeight:1}}>{seo.grade}</div>
+                              <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:700,marginTop:2}}>SEO 등급</div>
+                            </div>
+                            <div style={{width:1,height:40,background:'var(--border)'}}/>
+                            <div>
+                              <div style={{fontSize:20,fontWeight:900,color:seo.color}}>{seo.score}<span style={{fontSize:12,color:'var(--text-muted)'}}>/100</span></div>
+                              <div style={{fontSize:11,color:'var(--text-sub)',fontWeight:600}}>{seo.label}</div>
+                            </div>
+                          </div>
+                        </div>
 
-                        {/* 잘 되고 있는 것 */}
+                        {/* 노출률 바 */}
+                        <div style={{marginBottom:18}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text-muted)',fontWeight:700,marginBottom:5}}>
+                            <span>키워드 노출률</span><span style={{color:seo.color}}>{expRate}%</span>
+                          </div>
+                          <div style={{height:6,background:'var(--surface2)',borderRadius:99,overflow:'hidden'}}>
+                            <div style={{width:`${expRate}%`,height:'100%',background:`linear-gradient(90deg,${seo.color},#ec4899)`,borderRadius:99,transition:'width .6s ease'}}/>
+                          </div>
+                        </div>
+
+                        {/* 상위노출 중 */}
                         {top3List.length > 0 && (
                           <div className="report-section">
-                            <div className="report-section-title" style={{color:'#ec4899'}}>🥇 상위 3위 안에 노출 중인 키워드</div>
-                            <div className="report-section-body">
-                              이 키워드들은 이미 네이버 검색 상위권에 있어요. 글 내용을 업데이트하거나 내부 링크를 추가해서 순위를 유지·강화하세요.
+                            <div className="report-section-title" style={{color:'#f59e0b'}}>🥇 TOP 3 노출 키워드 — 지금 잘 되고 있어요</div>
+                            <div className="report-section-body" style={{marginBottom:10}}>아래 키워드는 네이버 검색 3위 안에 노출 중이에요. 글 내용을 최신 상태로 유지하고, 관련 글끼리 내부 링크를 연결해 순위를 지켜나가세요.</div>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                              {top3List.slice(0,6).map((r,i) => (
+                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(245,158,11,.12)',color:'#f59e0b',border:'1px solid rgba(245,158,11,.3)'}}>#{r.kw} · {r.rank}위</span>
+                              ))}
                             </div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
-                              {top3List.slice(0,5).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:700,padding:'4px 11px',borderRadius:99,background:'rgba(236,72,153,.12)',color:'#ec4899',border:'1px solid rgba(236,72,153,.3)'}}>
-                                  #{r.kw} · {r.rank}위
-                                </span>
+                          </div>
+                        )}
+
+                        {top10List.length > 0 && (
+                          <div className="report-section">
+                            <div className="report-section-title" style={{color:'#a855f7'}}>🏆 TOP 4~10위 노출 키워드 — 첫 페이지 진입 완료</div>
+                            <div className="report-section-body" style={{marginBottom:10}}>검색 첫 페이지에 노출 중이에요. 글 조회수와 체류 시간을 높이면 3위 안으로 올라갈 수 있어요.</div>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                              {top10List.slice(0,6).map((r,i) => (
+                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(168,85,247,.12)',color:'#a855f7',border:'1px solid rgba(168,85,247,.3)'}}>#{r.kw} · {r.rank}위</span>
                               ))}
                             </div>
                           </div>
@@ -749,51 +950,57 @@ export default function RankChecker() {
                         {/* 기회 키워드 */}
                         {opportunities.length > 0 && (
                           <div className="report-section">
-                            <div className="report-section-title" style={{color:'#10b981'}}>🎯 지금 당장 할 수 있는 것 (기회 키워드)</div>
-                            <div className="report-section-body">
-                              경쟁이 적은데 아직 노출이 안 되는 키워드예요. <strong>글 제목에 아래 키워드를 추가하는 것만으로</strong> 상위 노출될 가능성이 높아요.
+                            <div className="report-section-title" style={{color:'#10b981'}}>🎯 지금 당장 할 수 있는 것 — 제목만 바꿔도 올라가요</div>
+                            <div className="report-section-body" style={{marginBottom:10}}>
+                              경쟁자가 <strong>3,000명 미만</strong>인데 아직 글 제목에 이 키워드가 없어요.<br/>
+                              👉 해당 글 제목 맨 앞에 키워드를 추가하는 것만으로 상위 노출 가능성이 크게 높아집니다.
                             </div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
-                              {opportunities.slice(0,5).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:700,padding:'4px 11px',borderRadius:99,background:'rgba(16,185,129,.1)',color:'#10b981',border:'1px solid rgba(16,185,129,.3)'}}>
-                                  #{r.kw}
-                                </span>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                              {opportunities.slice(0,8).map((r,i) => (
+                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(16,185,129,.1)',color:'#10b981',border:'1px solid rgba(16,185,129,.3)'}}>#{r.kw}</span>
                               ))}
                             </div>
                           </div>
                         )}
 
-                        {/* 쉬운 개선 */}
                         {easyWins.length > 0 && (
                           <div className="report-section">
-                            <div className="report-section-title" style={{color:'#a855f7'}}>📝 글 품질 보강이 필요한 키워드</div>
-                            <div className="report-section-body">
-                              제목엔 키워드가 있는데 노출이 안 돼요. 본문에서 해당 키워드를 2~3회 더 자연스럽게 언급하고, 글 길이를 늘리면 순위가 올라갈 수 있어요.
+                            <div className="report-section-title" style={{color:'#3b82f6'}}>📝 본문 보강이 필요한 키워드 — 제목엔 있는데 미노출</div>
+                            <div className="report-section-body" style={{marginBottom:10}}>
+                              제목에는 키워드가 있지만 아직 검색에 안 잡혀요.<br/>
+                              👉 본문에서 이 키워드를 <strong>2~3번 자연스럽게</strong> 반복하고, 글 길이를 1,500자 이상으로 늘려보세요.
                             </div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
-                              {easyWins.slice(0,5).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:700,padding:'4px 11px',borderRadius:99,background:'rgba(168,85,247,.1)',color:'#a855f7',border:'1px solid rgba(168,85,247,.3)'}}>
-                                  #{r.kw}
-                                </span>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                              {easyWins.slice(0,8).map((r,i) => (
+                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(59,130,246,.1)',color:'#3b82f6',border:'1px solid rgba(59,130,246,.3)'}}>#{r.kw}</span>
                               ))}
                             </div>
                           </div>
                         )}
 
-                        {/* 포화 키워드 */}
-                        {highComp.length > 0 && (
+                        {midRange.length > 0 && (
                           <div className="report-section">
-                            <div className="report-section-title" style={{color:'#f87171'}}>⚠️ 경쟁이 너무 심한 키워드</div>
+                            <div className="report-section-title" style={{color:'#f59e0b'}}>🔥 중간 경쟁 키워드 — 전략적으로 접근하세요</div>
                             <div className="report-section-body">
-                              검색 결과가 15만 개 이상인 키워드예요. 단기간 상위 노출이 어려워요. 더 구체적인 키워드로 바꾸세요. 예: "맛집" → "강릉 중앙시장 맛집 추천"
+                              경쟁자가 3,000~15만 명 사이인 키워드예요.<br/>
+                              👉 단순 나열보다 <strong>전문적인 내용, 실제 경험, 사진</strong>으로 차별화하면 이길 수 있어요. 총 {midRange.length}개
                             </div>
                           </div>
                         )}
 
-                        {/* 아무 이슈 없을 때 */}
+                        {highComp.length > 0 && (
+                          <div className="report-section">
+                            <div className="report-section-title" style={{color:'#f87171'}}>⚠️ 경쟁 포화 키워드 — 키워드 교체를 권장해요</div>
+                            <div className="report-section-body">
+                              검색 결과가 15만 개 이상으로 대형 블로그들과 경쟁해야 해요.<br/>
+                              👉 "맛집" 대신 "강릉 중앙시장 현지인 맛집 추천"처럼 <strong>더 구체적인 롱테일 키워드</strong>로 바꾸세요. 총 {highComp.length}개
+                            </div>
+                          </div>
+                        )}
+
                         {top3List.length === 0 && opportunities.length === 0 && easyWins.length === 0 && (
-                          <div className="report-section-body" style={{color:'var(--text-muted)'}}>
-                            태그 또는 AI 키워드 설정 후 분석하면 더 정확한 리포트를 볼 수 있어요.
+                          <div className="report-section-body" style={{color:'var(--text-muted)',paddingTop:8}}>
+                            ⚙️ 설정에서 AI 키를 등록하면 더 정확한 키워드로 분석할 수 있어요.
                           </div>
                         )}
                       </div>
@@ -1050,7 +1257,7 @@ export default function RankChecker() {
                                 {r.total > 0 && <span style={{fontSize:11,color:'var(--text-muted)'}}>{r.total.toLocaleString()}개 문서</span>}
                               </div>
                               <div className="kw-result-label" style={{color:rs.color,marginTop:2}}>
-                                {r.found ? `네이버 검색 결과 ${r.rank}번째 노출` : '검색 결과 미노출 (100위 밖)'}
+                                {r.found ? `네이버 검색 결과 ${r.rank}번째 노출` : '이 키워드로 검색 시 내 글이 보이지 않음 (100위 밖)'}
                               </div>
                             </div>
                           </div>
@@ -1117,7 +1324,7 @@ export default function RankChecker() {
                       {color:'#ec4899',bg:'rgba(236,72,153,.15)',label:'2~3위',desc:'상위권 · 충분히 좋음'},
                       {color:'#a855f7',bg:'rgba(168,85,247,.15)',label:'4~10위',desc:'첫 페이지 · 노출 양호'},
                       {color:'#6366f1',bg:'rgba(99,102,241,.15)',label:'11~30위',desc:'2페이지권 · 개선 여지'},
-                      {color:'#64748b',bg:'rgba(100,116,139,.12)',label:'미노출',desc:'100위 밖 · 검색 안됨'},
+                      {color:'#64748b',bg:'rgba(100,116,139,.12)',label:'미노출',desc:'이 키워드로 검색해도 내 글이 보이지 않음 (100위 밖)'},
                     ].map(r => (
                       <div key={r.label} className="guide-example-row">
                         <span style={{fontSize:12,fontWeight:800,padding:'4px 12px',borderRadius:99,color:r.color,background:r.bg,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:70,textAlign:'center'}}>{r.label}</span>
