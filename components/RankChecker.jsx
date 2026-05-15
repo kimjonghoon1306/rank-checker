@@ -102,6 +102,7 @@ export default function RankChecker() {
   const [kwResults, setKwResults] = useState([]);
   const [kwLoading, setKwLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGuide, setShowGuide]       = useState(false);
   const [aiKeys, setAiKeys]       = useState({ openai: '', gemini: '', groq: '' });
   const [selectedAI, setSelectedAI] = useState(''); // 'groq' | 'gemini' | 'openai' | ''
   const abortRef = useRef(false);
@@ -385,6 +386,22 @@ export default function RankChecker() {
     .report-section:first-of-type{border-top:none;padding-top:0}
     .report-section-title{font-size:13px;font-weight:800;margin-bottom:6px}
     .report-section-body{font-size:12px;color:var(--text-sub);line-height:1.8}
+    /* 플로팅 가이드 버튼 */
+    @keyframes float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.04)}}
+    @keyframes glow-pulse{0%,100%{box-shadow:0 4px 20px rgba(236,72,153,.5),0 0 0 0 rgba(236,72,153,.3)}50%{box-shadow:0 8px 32px rgba(236,72,153,.7),0 0 0 8px rgba(236,72,153,.0)}}
+    .guide-float-btn{position:fixed;bottom:28px;right:24px;z-index:150;display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;animation:float 3s ease-in-out infinite,glow-pulse 3s ease-in-out infinite;box-shadow:0 4px 20px rgba(236,72,153,.5);letter-spacing:.2px}
+    .guide-float-btn:hover{animation:none;transform:scale(1.06);box-shadow:0 8px 32px rgba(236,72,153,.7)}
+    .guide-float-icon{font-size:18px;line-height:1}
+    .guide-float-label{white-space:nowrap}
+    /* 가이드 모달 */
+    .guide-modal{position:fixed;bottom:0;right:0;width:100%;max-width:480px;max-height:85vh;background:var(--bg2);z-index:201;border-radius:20px 20px 0 0;box-shadow:-4px -4px 40px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden}
+    .guide-section{padding:16px 0;border-bottom:1px solid var(--border)}
+    .guide-section:last-child{border-bottom:none}
+    .guide-section-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px}
+    .guide-p{font-size:12px;color:var(--text-sub);line-height:1.8;margin-bottom:10px}
+    .guide-examples{display:flex;flex-direction:column;gap:7px}
+    .guide-example-row{display:flex;align-items:center;gap:10px}
+    @media(max-width:640px){.guide-float-btn{bottom:20px;right:16px;padding:11px 16px;font-size:12px}.guide-modal{max-width:100%;border-radius:20px 20px 0 0}}
     /* 설정 패널 */
     .settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;backdrop-filter:blur(4px)}
     .settings-drawer{position:fixed;top:0;right:0;height:100%;width:100%;max-width:440px;background:var(--bg2);z-index:201;overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,.4);display:flex;flex-direction:column}
@@ -1068,6 +1085,120 @@ export default function RankChecker() {
             </>
           )}
         </div>
+
+        {/* ─── 떠다니는 가이드 버튼 ─── */}
+        <button
+          className="guide-float-btn"
+          onClick={() => setShowGuide(g => !g)}
+          title="용어 설명서"
+        >
+          <span className="guide-float-icon">📖</span>
+          <span className="guide-float-label">용어 설명</span>
+        </button>
+
+        {/* ─── 가이드 모달 ─── */}
+        {showGuide && (
+          <>
+            <div className="settings-overlay" onClick={() => setShowGuide(false)} />
+            <div className="guide-modal fade-up">
+              <div className="settings-head">
+                <div className="settings-title">📖 용어 & 지표 설명서</div>
+                <button className="settings-close" onClick={() => setShowGuide(false)}>✕</button>
+              </div>
+              <div style={{padding:'0 24px 24px',overflowY:'auto',flex:1}}>
+
+                {/* 순위 */}
+                <div className="guide-section">
+                  <div className="guide-section-title">🎯 순위란?</div>
+                  <p className="guide-p">네이버 검색창에 키워드를 입력했을 때 내 블로그 글이 몇 번째에 나타나는지를 의미해요. 1위가 가장 위, 100위 밖이면 미노출입니다.</p>
+                  <div className="guide-examples">
+                    {[
+                      {color:'#f59e0b',bg:'rgba(245,158,11,.15)',label:'1위 🥇',desc:'검색 최상단 · 클릭율 최고'},
+                      {color:'#ec4899',bg:'rgba(236,72,153,.15)',label:'2~3위',desc:'상위권 · 충분히 좋음'},
+                      {color:'#a855f7',bg:'rgba(168,85,247,.15)',label:'4~10위',desc:'첫 페이지 · 노출 양호'},
+                      {color:'#6366f1',bg:'rgba(99,102,241,.15)',label:'11~30위',desc:'2페이지권 · 개선 여지'},
+                      {color:'#64748b',bg:'rgba(100,116,139,.12)',label:'미노출',desc:'100위 밖 · 검색 안됨'},
+                    ].map(r => (
+                      <div key={r.label} className="guide-example-row">
+                        <span style={{fontSize:12,fontWeight:800,padding:'4px 12px',borderRadius:99,color:r.color,background:r.bg,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:70,textAlign:'center'}}>{r.label}</span>
+                        <span style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 경쟁도 */}
+                <div className="guide-section">
+                  <div className="guide-section-title">⚔️ 경쟁도란?</div>
+                  <p className="guide-p">해당 키워드로 네이버에서 검색했을 때 등록된 블로그 글이 몇 개인지를 보여줘요. 적을수록 내 글이 상위에 올라가기 쉽습니다.</p>
+                  <div className="guide-examples">
+                    {[
+                      {color:'#10b981',bg:'rgba(16,185,129,.12)',label:'낮음',desc:'3,000개 미만 · 지금 바로 도전하세요!'},
+                      {color:'#f59e0b',bg:'rgba(245,158,11,.12)',label:'보통',desc:'3,000~30,000개 · 글 품질로 승부 가능'},
+                      {color:'#f97316',bg:'rgba(249,115,22,.12)',label:'높음',desc:'3만~15만개 · 전략적 접근 필요'},
+                      {color:'#ef4444',bg:'rgba(239,68,68,.12)',label:'매우 높음',desc:'15만개 이상 · 더 구체적인 키워드 추천'},
+                    ].map(r => (
+                      <div key={r.label} className="guide-example-row">
+                        <span style={{fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,color:r.color,background:r.bg,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:70,textAlign:'center'}}>{r.label}</span>
+                        <span style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 키워드 출처 */}
+                <div className="guide-section">
+                  <div className="guide-section-title">🏷️ 키워드 출처란?</div>
+                  <p className="guide-p">이 도구가 어떤 방법으로 키워드를 찾아냈는지를 표시해요.</p>
+                  <div className="guide-examples">
+                    {[
+                      {color:'#10b981',label:'태그',desc:'블로그 글에 직접 등록한 해시태그 · 가장 정확'},
+                      {color:'#a78bfa',label:'AI',desc:'AI가 글 제목/내용을 분석해 추출 · 설정에서 키 등록 필요'},
+                      {color:'#94a3b8',label:'제목',desc:'글 제목 단어 조합으로 파싱 · 정확도 보통'},
+                    ].map(r => (
+                      <div key={r.label} className="guide-example-row">
+                        <span style={{fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,color:r.color,background:`${r.color}18`,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:50,textAlign:'center'}}>{r.label}</span>
+                        <span style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 인사이트 */}
+                <div className="guide-section">
+                  <div className="guide-section-title">💡 인사이트 메시지란?</div>
+                  <p className="guide-p">각 키워드 상황에 맞게 자동으로 조언을 드려요. 아래 색상으로 구분됩니다.</p>
+                  <div className="guide-examples">
+                    {[
+                      {color:'#10b981',border:'rgba(16,185,129,.3)',bg:'rgba(16,185,129,.1)',label:'🎯 기회!',desc:'경쟁 적고 제목에 키워드 없음 → 제목만 수정해도 상위 노출 가능'},
+                      {color:'#a855f7',border:'rgba(168,85,247,.3)',bg:'rgba(168,85,247,.1)',label:'📝 보강 필요',desc:'제목엔 있는데 미노출 → 본문에 키워드 2~3회 더 자연스럽게 추가'},
+                      {color:'#ef4444',border:'rgba(239,68,68,.25)',bg:'rgba(239,68,68,.08)',label:'⚠️ 교체 권장',desc:'경쟁 포화 → 더 좁고 구체적인 롱테일 키워드로 바꾸세요'},
+                      {color:'#f59e0b',border:'rgba(245,158,11,.3)',bg:'rgba(245,158,11,.1)',label:'💪 유지',desc:'치열한 경쟁에서 상위권 중 → 글 품질 계속 유지하세요'},
+                    ].map(r => (
+                      <div key={r.label} style={{padding:'10px 12px',borderRadius:10,border:`1px solid ${r.border}`,background:r.bg,marginBottom:8}}>
+                        <div style={{fontSize:12,fontWeight:800,color:r.color,marginBottom:3}}>{r.label}</div>
+                        <div style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 분석 리포트 */}
+                <div className="guide-section">
+                  <div className="guide-section-title">📋 분석 리포트란?</div>
+                  <p className="guide-p">분석이 끝나면 전체 결과를 요약해서 지금 당장 해야 할 것을 알려드려요. 기회 키워드, 개선 필요 글, 포기해야 할 키워드를 한눈에 볼 수 있어요.</p>
+                </div>
+
+                {/* TOP3/TOP10 */}
+                <div className="guide-section" style={{borderBottom:'none',paddingBottom:0}}>
+                  <div className="guide-section-title">🏆 TOP3 · TOP10이란?</div>
+                  <p className="guide-p">분석한 전체 키워드 중에서 네이버 검색 3위 안, 10위 안에 들어온 키워드의 개수예요. 숫자가 높을수록 블로그 SEO 상태가 좋다는 의미입니다.</p>
+                </div>
+
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
