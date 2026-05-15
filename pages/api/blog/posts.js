@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 태그 수집 (상위 20개)
+    // 태그 수집 (상위 20개 - HTTP 요청 제한)
     const tagLimit = Math.min(posts.length, 20);
     const withTags = await Promise.all(
       posts.slice(0, tagLimit).map(async (post, idx) => {
@@ -101,8 +101,14 @@ export default async function handler(req, res) {
       })
     );
 
-    // 태그 없는 글 → AI 키워드 추출 (배치, 동시 5개)
-    const noTagPosts = withTags.filter(p => !p.keywords.length);
+    // 21번 이후 글은 태그 수집 생략 → keywords 빈 배열로 초기화
+    const remaining = posts.slice(tagLimit).map(p => ({ ...p, keywords: [], keywordSource: null }));
+
+    // 전체 글 합치기
+    const allPosts = [...withTags, ...remaining];
+
+    // 태그 없는 글 전체 → AI 키워드 추출 (배치, 동시 5개)
+    const noTagPosts = allPosts.filter(p => !p.keywords.length);
     if (noTagPosts.length > 0) {
       const BATCH = 5;
       for (let i = 0; i < noTagPosts.length; i += BATCH) {
@@ -114,7 +120,6 @@ export default async function handler(req, res) {
             post.keywords = aiKws;
             post.keywordSource = 'ai';
           } else {
-            // 최종 fallback: 제목 파싱
             post.keywords = extractFromTitle(post.title);
             post.keywordSource = 'title';
           }
@@ -126,7 +131,7 @@ export default async function handler(req, res) {
       success: true,
       blogId: id,
       totalPosts: posts.length,
-      posts: [...withTags, ...posts.slice(tagLimit)],
+      posts: allPosts,
     });
   } catch (e) {
     return res.status(500).json({ error: e.message });
