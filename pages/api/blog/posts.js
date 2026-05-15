@@ -35,23 +35,14 @@ function extractFromTitle(title) {
   return [...new Set(keywords)].slice(0, 3);
 }
 
-// Claude AI로 키워드 추출
-async function extractKeywordsWithAI(title, description) {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-20240307',
-        max_tokens: 150,
-        messages: [{
-          role: 'user',
-          content: `네이버 블로그 글 제목을 보고, 사람들이 네이버 검색창에 실제로 입력할 검색어 3개를 추출해.
+// AI로 키워드 추출 - OpenAI / Gemini / Groq 지원
+async function extractKeywordsWithAI(title, description, aiProvider, aiKey) {
+  // 환경변수 우선, 없으면 프론트에서 받은 키 사용
+  const provider = aiProvider || (process.env.GEMINI_API_KEY ? 'gemini' : null);
+  const key = aiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
+  if (!provider || !key) return null;
+
+  const prompt = `네이버 블로그 글 제목을 보고, 사람들이 네이버 검색창에 실제로 입력할 검색어 3개를 추출해.
 
 제목: ${title}
 ${description ? `내용: ${description.slice(0, 200)}` : ''}
@@ -60,24 +51,84 @@ ${description ? `내용: ${description.slice(0, 200)}` : ''}
 - 2~4단어로 구성된 검색 구문 (예: "실업급여 신청 조건", "강남 점심 맛집", "블로그 체험단 신청")
 - 제목에서 핵심 주제를 가장 잘 담은 구문 우선
 - 단독 단어 1개는 절대 안됨 (예: "맛집" X → "강남 맛집" O)
-- 지역명+업종, 제품명+후기, 주제+방법 같은 조합
-- JSON 배열만 반환, 다른 텍스트 금지: ["검색어1","검색어2","검색어3"]`,
-        }],
-      }),
-    });
-    const data = await response.json();
-    const text = (data.content?.[0]?.text || '[]').replace(/```[a-z]*|```/g, '').trim();
-    const keywords = JSON.parse(text);
-    return Array.isArray(keywords) ? keywords.slice(0, 4) : null;
-  } catch {
-    return null;
-  }
+- JSON 배열만 반환, 다른 텍스트 금지: ["검색어1","검색어2","검색어3"]`;
+
+  try {
+    // ── Gemini (모델 순차 fallback) ──
+    if (provider === 'gemini') {
+      const MODELS = ['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-2.5-flash','gemini-2.5-flash-lite'];
+      for (const model of MODELS) {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: 150, temperature: 0.1 },
+              }),
+            }
+          );
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            const status = resp.status;
+            if (status === 401 || status === 403) return null; // 키 오류 → 재시도 무의미
+            continue;
+          }
+          const data = await resp.json();
+          const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/```[a-z]*|```/g, '').trim();
+          if (!text) continue;
+          const keywords = JSON.parse(text);
+          if (Array.isArray(keywords) && keywords.length) return keywords.slice(0, 3);
+        } catch { continue; }
+      }
+      return null;
+    }
+
+    // ── Groq (Llama 3 · OpenAI 호환 포맷) ──
+    if (provider === 'groq') {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150, temperature: 0.1,
+        }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const text = (data.choices?.[0]?.message?.content || '').replace(/```[a-z]*|```/g, '').trim();
+      const keywords = JSON.parse(text);
+      return Array.isArray(keywords) && keywords.length ? keywords.slice(0, 3) : null;
+    }
+
+    // ── OpenAI ──
+    if (provider === 'openai') {
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150, temperature: 0.1,
+        }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const text = (data.choices?.[0]?.message?.content || '').replace(/```[a-z]*|```/g, '').trim();
+      const keywords = JSON.parse(text);
+      return Array.isArray(keywords) && keywords.length ? keywords.slice(0, 3) : null;
+    }
+  } catch {}
+  return null;
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { blogId, maxPosts = 50 } = req.body;
+  const { blogId, maxPosts = 50, aiKey, aiProvider } = req.body;
   if (!blogId) return res.status(400).json({ error: 'blogId가 필요합니다.' });
 
   const id = blogId.trim().toLowerCase();
@@ -115,7 +166,7 @@ export default async function handler(req, res) {
         const batch = noTagPosts.slice(i, i + BATCH);
         await Promise.all(batch.map(async (post, bIdx) => {
           await new Promise(r => setTimeout(r, bIdx * 80));
-          const aiKws = await extractKeywordsWithAI(post.title, post.description);
+          const aiKws = await extractKeywordsWithAI(post.title, post.description, aiProvider, aiKey);
           if (aiKws && aiKws.length) {
             post.keywords = aiKws;
             post.keywordSource = 'ai';
