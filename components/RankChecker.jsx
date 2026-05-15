@@ -58,6 +58,8 @@ function getInsightStyle(type) {
 }
 
 
+function getSourceBadge(src) {
+  if (src === 'tag')   return { label: '태그', color: '#10b981' };
   if (src === 'ai')    return { label: 'AI', color: '#a78bfa' };
   if (src === 'title') return { label: '제목', color: '#94a3b8' };
   return null;
