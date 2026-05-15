@@ -11,8 +11,53 @@ function getRankStyle(rank) {
   return { color: 'var(--text-muted)', bg: 'var(--surface2)', label: `${rank}위`, tier: 0 };
 }
 
-function getSourceBadge(src) {
-  if (src === 'tag')   return { label: '태그', color: '#10b981' };
+// 경쟁도: 해당 키워드 네이버 문서 수 기반
+function getCompetition(total) {
+  if (!total) return null;
+  if (total < 3000)   return { label: '경쟁 낮음', short: '낮음', color: '#10b981', bg: 'rgba(16,185,129,.12)' };
+  if (total < 30000)  return { label: '경쟁 보통', short: '보통', color: '#f59e0b', bg: 'rgba(245,158,11,.12)' };
+  if (total < 150000) return { label: '경쟁 높음', short: '높음', color: '#f97316', bg: 'rgba(249,115,22,.12)' };
+  return { label: '경쟁 매우 높음', short: '매우 높음', color: '#ef4444', bg: 'rgba(239,68,68,.12)' };
+}
+
+// 제목에 키워드 포함 여부 (공백 무시, 소문자 비교)
+function titleContains(title, kw) {
+  const t = title.replace(/\s/g, '').toLowerCase();
+  const k = kw.replace(/\s/g, '').toLowerCase();
+  return t.includes(k);
+}
+
+// 핵심 인사이트: 미노출 이유 + 해결책
+function getInsight(found, rank, total, inTitle) {
+  const comp = getCompetition(total);
+  if (found) {
+    if (!comp) return null;
+    if (comp.label === '경쟁 낮음') return { type: 'good', msg: '경쟁 적은 키워드에서 노출 중 — 유지하세요' };
+    if (rank <= 3) return { type: 'great', msg: '치열한 경쟁에서 상위권 — 글 퀄리티 계속 유지' };
+    return null;
+  }
+  // 미노출 케이스
+  if (!comp) return { type: 'tip', msg: '제목과 본문에 이 키워드를 자연스럽게 포함시키세요' };
+  if (comp.label === '경쟁 낮음' && !inTitle)
+    return { type: 'opportunity', msg: '🎯 기회! 경쟁 적은데 제목에 키워드 없음 → 제목에 추가하면 상위 가능성 높음' };
+  if (comp.label === '경쟁 낮음' && inTitle)
+    return { type: 'tip', msg: '경쟁은 낮으나 미노출 → 글 길이·품질·내부링크 보강 필요' };
+  if (comp.label === '경쟁 보통' && !inTitle)
+    return { type: 'tip', msg: '제목에 키워드 추가 후 본문에도 2~3회 자연스럽게 삽입하세요' };
+  if (comp.label === '경쟁 높음' || comp.label === '경쟁 매우 높음')
+    return { type: 'warn', msg: '경쟁 포화 키워드 — 더 구체적인 롱테일 키워드로 교체 권장' };
+  return { type: 'tip', msg: '제목과 본문에 이 키워드를 자연스럽게 포함시키세요' };
+}
+
+function getInsightStyle(type) {
+  if (type === 'opportunity') return { color: '#10b981', bg: 'rgba(16,185,129,.1)', border: 'rgba(16,185,129,.3)' };
+  if (type === 'great')       return { color: '#f59e0b', bg: 'rgba(245,158,11,.1)', border: 'rgba(245,158,11,.3)' };
+  if (type === 'good')        return { color: '#a855f7', bg: 'rgba(168,85,247,.1)', border: 'rgba(168,85,247,.3)' };
+  if (type === 'warn')        return { color: '#ef4444', bg: 'rgba(239,68,68,.08)', border: 'rgba(239,68,68,.25)' };
+  return { color: 'var(--text-sub)', bg: 'var(--surface2)', border: 'var(--border)' };
+}
+
+
   if (src === 'ai')    return { label: 'AI', color: '#a78bfa' };
   if (src === 'title') return { label: '제목', color: '#94a3b8' };
   return null;
@@ -97,7 +142,7 @@ export default function RankChecker() {
         });
         const data = await res.json();
         if (data.needsApiKey) { setError('Vercel 환경변수에 네이버 API 키가 없습니다.'); abortRef.current = true; break; }
-        setRankResults(p => ({ ...p, [`${post.logNo}_${kw}`]: { rank: data.rank, found: data.found } }));
+        setRankResults(p => ({ ...p, [`${post.logNo}_${kw}`]: { rank: data.rank, found: data.found, total: data.total || 0 } }));
       } catch {
         setRankResults(p => ({ ...p, [`${post.logNo}_${kw}`]: { rank: null, found: false } }));
       }
@@ -119,7 +164,7 @@ export default function RankChecker() {
           body: JSON.stringify({ keyword: kw, blogId: kwBlogId.trim() }),
         });
         const d = await r.json();
-        acc.push({ keyword: kw, rank: d.rank, found: d.found });
+        acc.push({ keyword: kw, rank: d.rank, found: d.found, total: d.total || 0 });
       } catch { acc.push({ keyword: kw, rank: null, found: false }); }
       setKwResults([...acc]);
       await new Promise(r => setTimeout(r, 250));
@@ -291,6 +336,11 @@ export default function RankChecker() {
     .kw-chips { display:flex; flex-wrap:wrap; gap:6px; padding-left:30px; }
     .kw-chip { font-size:12px; font-weight:700; padding:6px 12px; border-radius:99px; border:1.5px solid; transition:all .2s; display:flex; align-items:center; gap:5px; }
     .kw-chip-rank { font-size:11px; font-weight:900; }
+    .comp-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid;flex-shrink:0}
+    .insight-box{margin-top:10px;padding:10px 14px;border-radius:10px;border:1px solid;font-size:12px;font-weight:600;line-height:1.6;padding-left:30px}
+    .title-match-yes{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+    .title-match-no{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+    .opportunity-row{box-shadow:0 0 0 2px rgba(16,185,129,.35) !important}
     .src-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:99px; border:1px solid; flex-shrink:0; }
     /* kw ranker */
     .kw-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
@@ -520,6 +570,9 @@ export default function RankChecker() {
                             {exposed.map(({ post, kw, rank }, i) => {
                               const rs = getRankStyle(rank);
                               const srcInfo = getSourceBadge(post.keywordSource);
+                              const r = rankResults[`${post.logNo}_${kw}`];
+                              const comp = r ? getCompetition(r.total) : null;
+                              const inTitle = titleContains(post.title, kw);
                               return (
                                 <div key={`ex_${post.logNo}_${kw}`} className="rank-row fade-up" style={{animationDelay:`${i*0.03}s`}}>
                                   <div className="rank-num-wrap">
@@ -532,6 +585,8 @@ export default function RankChecker() {
                                       <span style={{color:rs.color,flexShrink:0}}>#</span>
                                       <span className="rank-kw-text">{kw}</span>
                                       {srcInfo && <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>{srcInfo.label}</span>}
+                                      {!inTitle && <span className="title-match-no">제목 없음</span>}
+                                      {comp && <span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.short}</span>}
                                     </div>
                                     <a href={post.link} target="_blank" rel="noreferrer" className="rank-post" style={{color:'var(--text-sub)'}}>{post.title}</a>
                                   </div>
@@ -606,17 +661,46 @@ export default function RankChecker() {
                                 const r  = rankResults[`${post.logNo}_${kw}`];
                                 const rs = r ? getRankStyle(r.found ? r.rank : null) : null;
                                 const checking = isRunning && !r;
+                                const comp = r ? getCompetition(r.total) : null;
+                                const inTitle = titleContains(post.title, kw);
+                                const insight = (r && !checking) ? getInsight(r.found, r.rank, r.total, inTitle) : null;
+                                const insightStyle = insight ? getInsightStyle(insight.type) : null;
+                                const isOpportunity = insight?.type === 'opportunity';
+
                                 return (
-                                  <span key={kw} className={`kw-chip${checking?' pulse':''}`}
-                                    style={{
-                                      color:    rs ? rs.color : 'var(--text-muted)',
-                                      borderColor: rs ? rs.color+'50' : 'var(--border)',
-                                      background:  rs ? rs.bg : 'var(--surface2)',
-                                    }}>
-                                    <span>#{kw}</span>
-                                    {rs && <span className="kw-chip-rank">{rs.found ? `${r.rank}위` : '미노출'}</span>}
-                                    {checking && <span style={{fontSize:10}}>···</span>}
-                                  </span>
+                                  <div key={kw} style={{width:'100%'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                                      {/* 키워드 칩 */}
+                                      <span className={`kw-chip${checking?' pulse':''}${isOpportunity?' opportunity-row':''}`}
+                                        style={{
+                                          color:       rs ? rs.color : 'var(--text-muted)',
+                                          borderColor: rs ? rs.color+'50' : 'var(--border)',
+                                          background:  rs ? rs.bg : 'var(--surface2)',
+                                        }}>
+                                        <span>#{kw}</span>
+                                        {rs && <span className="kw-chip-rank">{r.found ? `${r.rank}위` : '미노출'}</span>}
+                                        {checking && <span style={{fontSize:10}}>···</span>}
+                                      </span>
+                                      {/* 경쟁도 */}
+                                      {comp && !checking && (
+                                        <span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>
+                                          {comp.short}
+                                        </span>
+                                      )}
+                                      {/* 제목 포함 여부 */}
+                                      {r && !checking && (
+                                        <span className={inTitle ? 'title-match-yes' : 'title-match-no'}>
+                                          {inTitle ? '제목 ✓' : '제목 없음'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* 인사이트 */}
+                                    {insight && insightStyle && (
+                                      <div className="insight-box" style={{color:insightStyle.color,background:insightStyle.bg,borderColor:insightStyle.border}}>
+                                        {insight.msg}
+                                      </div>
+                                    )}
+                                  </div>
                                 );
                               })}
                               {!post.keywords?.length && (
@@ -663,20 +747,34 @@ export default function RankChecker() {
                   </div>
                   {kwResults.map((r, i) => {
                     const rs = getRankStyle(r.found ? r.rank : null);
+                    const comp = getCompetition(r.total);
+                    const insight = getInsight(r.found, r.rank, r.total, false);
+                    const insightStyle = insight ? getInsightStyle(insight.type) : null;
                     return (
-                      <div key={i} className="kw-result-row fade-up" style={{animationDelay:`${i*0.05}s`}}>
-                        <div className="kw-result-left">
-                          <span className="kw-result-idx">{i+1}</span>
-                          <div>
-                            <div className="kw-result-name">{r.keyword}</div>
-                            <div className="kw-result-label" style={{color:rs.color}}>
-                              {r.found ? `네이버 검색 결과 ${r.rank}번째 노출` : '검색 결과 미노출 (100위 밖)'}
+                      <div key={i} className="kw-result-row fade-up" style={{animationDelay:`${i*0.05}s`,flexDirection:'column',alignItems:'stretch',gap:8}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div className="kw-result-left">
+                            <span className="kw-result-idx">{i+1}</span>
+                            <div>
+                              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                                <div className="kw-result-name">{r.keyword}</div>
+                                {comp && <span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.label}</span>}
+                                {r.total > 0 && <span style={{fontSize:11,color:'var(--text-muted)'}}>{r.total.toLocaleString()}개 문서</span>}
+                              </div>
+                              <div className="kw-result-label" style={{color:rs.color,marginTop:2}}>
+                                {r.found ? `네이버 검색 결과 ${r.rank}번째 노출` : '검색 결과 미노출 (100위 밖)'}
+                              </div>
                             </div>
                           </div>
+                          <div className="kw-result-rank" style={{color: r.found ? rs.color : 'var(--rank-none)'}}>
+                            {r.found ? `${r.rank}위` : '—'}
+                          </div>
                         </div>
-                        <div className="kw-result-rank" style={{color: r.found ? rs.color : 'var(--rank-none)'}}>
-                          {r.found ? `${r.rank}위` : '—'}
-                        </div>
+                        {insight && insightStyle && (
+                          <div style={{fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:9,border:`1px solid ${insightStyle.border}`,background:insightStyle.bg,color:insightStyle.color,marginLeft:32}}>
+                            {insight.msg}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
