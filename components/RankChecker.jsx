@@ -90,7 +90,7 @@ function exportCSV(posts, rankResults) {
 export default function RankChecker() {
   const [theme, setTheme]         = useState('dark');
   const [tab, setTab]             = useState('posts');
-  const [view, setView]           = useState('rank');   // 'rank' | 'post'
+  const [view, setView]           = useState('rank');
   const [blogId, setBlogId]       = useState('');
   const [phase, setPhase]         = useState('idle');
   const [error, setError]         = useState('');
@@ -101,8 +101,42 @@ export default function RankChecker() {
   const [kwInput, setKwInput]     = useState('');
   const [kwResults, setKwResults] = useState([]);
   const [kwLoading, setKwLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [aiKeys, setAiKeys]       = useState({ openai: '', gemini: '', groq: '' });
+  const [selectedAI, setSelectedAI] = useState(''); // 'groq' | 'gemini' | 'openai' | ''
   const abortRef = useRef(false);
   const inputRef = useRef(null);
+
+  // localStorage에서 키 + 선택 로드
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('rc_ai_keys') || '{}');
+      setAiKeys(k => ({ ...k, ...saved }));
+      const sel = localStorage.getItem('rc_ai_selected') || '';
+      setSelectedAI(sel);
+    } catch {}
+  }, []);
+
+  // 키 변경 시 localStorage 저장
+  const updateAiKey = (provider, val) => {
+    const next = { ...aiKeys, [provider]: val };
+    setAiKeys(next);
+    try { localStorage.setItem('rc_ai_keys', JSON.stringify(next)); } catch {}
+  };
+
+  // AI 선택 변경
+  const updateSelectedAI = (val) => {
+    setSelectedAI(val);
+    try { localStorage.setItem('rc_ai_selected', val); } catch {}
+  };
+
+  // 현재 선택된 AI 키 반환
+  const getActiveAI = () => {
+    if (!selectedAI) return null;
+    const key = aiKeys[selectedAI]?.trim();
+    if (!key) return null;
+    return { provider: selectedAI, key };
+  };
 
   const dark = theme === 'dark';
 
@@ -117,9 +151,10 @@ export default function RankChecker() {
 
     let fetched = [];
     try {
+      const ai = getActiveAI();
       const res = await fetch('/api/blog/posts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blogId: id, maxPosts: 50 }),
+        body: JSON.stringify({ blogId: id, maxPosts: 50, aiKey: ai?.key, aiProvider: ai?.provider }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -343,6 +378,30 @@ export default function RankChecker() {
     .title-match-yes{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3)}
     .title-match-no{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.2)}
     .opportunity-row{box-shadow:0 0 0 2px rgba(16,185,129,.35) !important}
+    /* 설정 패널 */
+    .settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;backdrop-filter:blur(4px)}
+    .settings-drawer{position:fixed;top:0;right:0;height:100%;width:100%;max-width:440px;background:var(--bg2);z-index:201;overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,.4);display:flex;flex-direction:column}
+    .settings-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1}
+    .settings-title{font-size:16px;font-weight:800;color:var(--text)}
+    .settings-close{width:34px;height:34px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text)}
+    .settings-body{padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:16px}
+    .ai-card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:16px;transition:border-color .2s}
+    .ai-card.active-card{border-color:var(--accent)}
+    .ai-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .ai-name{font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px}
+    .ai-price-free{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+    .ai-price-partial{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+    .ai-price-paid{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+    .ai-active-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent)}
+    .ai-inp-row{display:flex;gap:8px}
+    .ai-inp{flex:1;height:40px;padding:0 12px;background:var(--inp-bg);border:1.5px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+    .ai-inp:focus{border-color:var(--accent)}
+    .ai-inp::placeholder{color:var(--text-muted);font-size:12px}
+    .issue-btn{height:40px;padding:0 12px;border:1.5px solid var(--border2);border-radius:9px;background:var(--surface2);color:var(--text-sub);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s;flex-shrink:0}
+    .issue-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .device-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:14px 16px;font-size:12px;color:#f59e0b;line-height:1.8}
+    .active-ai-info{background:var(--accent-bg);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--accent);font-weight:600}
+    @media(max-width:640px){.settings-drawer{max-width:100%}}
     .src-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:99px; border:1px solid; flex-shrink:0; }
     /* kw ranker */
     .kw-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
@@ -419,6 +478,9 @@ export default function RankChecker() {
                   📥 CSV
                 </button>
               )}
+              <button className="theme-btn" title="AI 설정" onClick={() => setShowSettings(true)} style={{fontSize:18}}>
+                ⚙️
+              </button>
               <button className="theme-btn" onClick={() => setTheme(t => t==='dark'?'light':'dark')}>
                 {dark ? '☀️' : '🌙'}
               </button>
@@ -430,6 +492,118 @@ export default function RankChecker() {
             ))}
           </div>
         </div>
+
+        {/* ─── 설정 드로어 ─── */}
+        {showSettings && (() => {
+          const activeAI = getActiveAI();
+          const AI_LIST = [
+            {
+              key: 'groq', label: 'Groq (Llama 3)', emoji: '⚡',
+              price: 'free', priceLabel: '무료',
+              placeholder: 'gsk_xxxxxxxxxxxxxxxx',
+              issueUrl: 'https://console.groq.com/keys',
+              desc: 'Meta Llama 3 기반 · 가장 빠름 · 완전 무료',
+            },
+            {
+              key: 'gemini', label: 'Google Gemini', emoji: '✨',
+              price: 'partial', priceLabel: '일부 무료 / 유료',
+              placeholder: 'AIzaSyxxxxxxxxxxxxxxx',
+              issueUrl: 'https://aistudio.google.com/app/apikey',
+              desc: 'Gemini 2.0 Flash · 1,500회/일 무료',
+            },
+            {
+              key: 'openai', label: 'OpenAI GPT', emoji: '🤖',
+              price: 'paid', priceLabel: '유료',
+              placeholder: 'sk-xxxxxxxxxxxxxxxx',
+              issueUrl: 'https://platform.openai.com/api-keys',
+              desc: 'GPT-4o Mini · 고품질 · 사용량 과금',
+            },
+          ];
+          return (
+            <>
+              <div className="settings-overlay" onClick={() => setShowSettings(false)} />
+              <div className="settings-drawer">
+                <div className="settings-head">
+                  <div className="settings-title">🤖 AI 키워드 분석 설정</div>
+                  <button className="settings-close" onClick={() => setShowSettings(false)}>✕</button>
+                </div>
+                <div className="settings-body">
+
+                  {/* 디바이스 경고 */}
+                  <div className="device-warn">
+                    ⚠️ <strong>기기별 저장 안내</strong><br/>
+                    API 키는 현재 기기의 브라우저에만 저장됩니다.<br/>
+                    <strong>PC ↔ 모바일 ↔ 태블릿 변경 시</strong> 각 기기에서 다시 입력해야 합니다.<br/>
+                    서버에 저장되지 않으며 다른 사람과 공유되지 않습니다.
+                  </div>
+
+                  {/* 현재 활성 상태 */}
+                  {activeAI ? (
+                    <div className="active-ai-info">
+                      ✅ 사용 중: <strong>{AI_LIST.find(a=>a.key===activeAI.provider)?.label}</strong>
+                    </div>
+                  ) : (
+                    <div style={{padding:'10px 14px',borderRadius:10,background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)',fontSize:12,color:'#f87171',fontWeight:600}}>
+                      ❌ 선택된 AI 없음 — AI 선택 시 키워드 품질이 향상됩니다
+                    </div>
+                  )}
+
+                  {/* AI 카드 3개 - 각각 독립 */}
+                  {AI_LIST.map(ai => {
+                    const isSelected = selectedAI === ai.key;
+                    const hasKey = !!aiKeys[ai.key].trim();
+                    return (
+                      <div key={ai.key} className={`ai-card${isSelected ? ' active-card' : ''}`}>
+                        <div className="ai-card-head">
+                          <div className="ai-name">
+                            <span>{ai.emoji}</span>
+                            <span>{ai.label}</span>
+                            {isSelected && <span className="ai-active-badge">선택됨</span>}
+                          </div>
+                          <span className={`ai-price-${ai.price}`}>{ai.priceLabel}</span>
+                        </div>
+                        <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{ai.desc}</div>
+                        <div className="ai-inp-row">
+                          <input
+                            className="ai-inp"
+                            type="password"
+                            placeholder={ai.placeholder}
+                            value={aiKeys[ai.key]}
+                            onChange={e => updateAiKey(ai.key, e.target.value)}
+                          />
+                          <button className="issue-btn" onClick={() => window.open(ai.issueUrl, '_blank')}>
+                            🔑 발급받기
+                          </button>
+                        </div>
+                        <div style={{marginTop:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <span style={{fontSize:11,color: hasKey ? '#10b981' : 'var(--text-muted)',fontWeight:600}}>
+                            {hasKey ? '✓ 키 저장됨' : '키 미입력'}
+                          </span>
+                          <button
+                            onClick={() => updateSelectedAI(isSelected ? '' : ai.key)}
+                            style={{
+                              height:30, padding:'0 14px', borderRadius:8, fontSize:12, fontWeight:700,
+                              border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border2)'}`,
+                              background: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                              color: isSelected ? '#fff' : 'var(--text-sub)',
+                              cursor:'pointer', fontFamily:'inherit', transition:'all .2s',
+                            }}
+                          >
+                            {isSelected ? '✓ 사용 중' : '이 AI 사용'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div style={{fontSize:11,color:'var(--text-muted)',textAlign:'center',lineHeight:1.8}}>
+                    AI 미설정 시 글의 해시태그 또는 제목 파싱으로 키워드 추출
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* ─── CONTENT ─── */}
         <div className="rc-content">
@@ -462,7 +636,7 @@ export default function RankChecker() {
                     💡 블로그 ID만 입력하면 자동으로 키워드를 찾아 순위를 체크합니다<br/>
                     <span style={{display:'flex',gap:14,marginTop:4,flexWrap:'wrap'}}>
                       <span><span className="src-dot" style={{background:'#10b981'}}/>태그 — 글의 해시태그 사용</span>
-                      <span><span className="src-dot" style={{background:'#a78bfa'}}/>AI — Claude AI가 제목 분석</span>
+                      <span><span className="src-dot" style={{background:'#a78bfa'}}/>AI — AI가 제목 분석 (⚙️ 설정 필요)</span>
                       <span><span className="src-dot" style={{background:'#94a3b8'}}/>제목 — 제목 단어 파싱</span>
                     </span>
                   </div>
