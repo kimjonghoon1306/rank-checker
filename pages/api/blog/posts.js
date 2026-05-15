@@ -2,6 +2,53 @@ import { fetchPostsByRSS, fetchPostTags } from '../../../lib/naverBlog';
 
 export const config = { api: { responseLimit: false }, maxDuration: 60 };
 
+// 제목에서 키워드 추출 (AI 없을 때 fallback)
+function extractFromTitle(title) {
+  return title
+    .replace(/[^\w\s가-힣]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 2 && w.length <= 10)
+    .slice(0, 4);
+}
+
+// Claude AI로 키워드 추출
+async function extractKeywordsWithAI(title, description) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-20240307',
+        max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: `네이버 블로그 글 제목을 보고 사람들이 실제로 네이버에서 검색할 핵심 키워드 3~4개 추출.
+
+제목: ${title}
+${description ? `내용 일부: ${description.slice(0, 150)}` : ''}
+
+규칙:
+- 2~6글자 구체적 키워드
+- 지역명+업종 조합 OK (예: 강남맛집, 부산카페)
+- 제품명, 브랜드명 포함
+- JSON 배열만 반환 (다른 텍스트 절대 금지): ["키워드1","키워드2","키워드3"]`,
+        }],
+      }),
+    });
+    const data = await response.json();
+    const text = (data.content?.[0]?.text || '[]').replace(/```[a-z]*|```/g, '').trim();
+    const keywords = JSON.parse(text);
+    return Array.isArray(keywords) ? keywords.slice(0, 4) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -19,15 +66,36 @@ export default async function handler(req, res) {
       });
     }
 
-    // 태그 수집 (상위 20개, 순차 딜레이)
+    // 태그 수집 (상위 20개)
     const tagLimit = Math.min(posts.length, 20);
     const withTags = await Promise.all(
       posts.slice(0, tagLimit).map(async (post, idx) => {
         await new Promise(r => setTimeout(r, idx * 120));
         const keywords = await fetchPostTags(id, post.logNo);
-        return { ...post, keywords };
+        return { ...post, keywords, keywordSource: keywords.length ? 'tag' : null };
       })
     );
+
+    // 태그 없는 글 → AI 키워드 추출 (배치, 동시 5개)
+    const noTagPosts = withTags.filter(p => !p.keywords.length);
+    if (noTagPosts.length > 0) {
+      const BATCH = 5;
+      for (let i = 0; i < noTagPosts.length; i += BATCH) {
+        const batch = noTagPosts.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (post, bIdx) => {
+          await new Promise(r => setTimeout(r, bIdx * 80));
+          const aiKws = await extractKeywordsWithAI(post.title, post.description);
+          if (aiKws && aiKws.length) {
+            post.keywords = aiKws;
+            post.keywordSource = 'ai';
+          } else {
+            // 최종 fallback: 제목 파싱
+            post.keywords = extractFromTitle(post.title);
+            post.keywordSource = 'title';
+          }
+        }));
+      }
+    }
 
     return res.status(200).json({
       success: true,
