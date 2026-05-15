@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "pages/api/blog/posts.js":    { "maxDuration": 60 },
+    "pages/api/blog/rank.js":     { "maxDuration": 15 },
+    "pages/api/blog/keywords.js": { "maxDuration": 10 }
+  }
+}
