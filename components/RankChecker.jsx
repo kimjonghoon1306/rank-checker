@@ -486,51 +486,86 @@ export default function RankChecker() {
                           순위 분석 중...
                         </div>
                       )}
-                      {rankRows.map(({ post, kw, rank, found, checked }, i) => {
-                        const rs = getRankStyle(found ? rank : null);
-                        const srcInfo = getSourceBadge(post.keywordSource);
-                        const isChecking = isRunning && !checked;
+                      {/* 노출된 것 먼저, 미노출은 글 단위로 묶어서 */}
+                      {(() => {
+                        const exposed = rankRows.filter(r => r.found);
+                        const hidden  = rankRows.filter(r => !r.found && r.checked);
+                        const checking = rankRows.filter(r => !r.checked);
+
+                        // 미노출은 같은 글끼리 묶기
+                        const hiddenByPost = {};
+                        hidden.forEach(r => {
+                          if (!hiddenByPost[r.post.logNo]) hiddenByPost[r.post.logNo] = { post: r.post, kws: [] };
+                          hiddenByPost[r.post.logNo].kws.push(r.kw);
+                        });
+
                         return (
-                          <div key={`${post.logNo}_${kw}_${i}`} className="rank-row fade-up" style={{animationDelay:`${i*0.03}s`}}>
-                            {/* 순위 숫자 */}
-                            <div className="rank-num-wrap">
-                              {isChecking ? (
-                                <div className="rank-num pulse" style={{color:'var(--text-muted)',fontSize:20}}>···</div>
-                              ) : (
-                                <div className="rank-num" style={{color: found ? rs.color : 'var(--rank-none)'}}>
-                                  {found ? rank : '—'}
+                          <>
+                            {/* 확인 중 */}
+                            {checking.map(({ post, kw }, i) => (
+                              <div key={`ck_${post.logNo}_${kw}`} className="rank-row fade-up">
+                                <div className="rank-num-wrap">
+                                  <div className="rank-num pulse" style={{color:'var(--text-muted)',fontSize:20}}>···</div>
+                                  <div className="rank-num-label">확인중</div>
                                 </div>
-                              )}
-                              <div className="rank-num-label">{found ? '번째 노출' : (isChecking ? '확인중' : '미노출')}</div>
-                            </div>
-                            <div className="rank-divider" />
-                            {/* 키워드 + 글 */}
-                            <div className="rank-info">
-                              <div className="rank-kw">
-                                <span style={{color:rs.color,flexShrink:0}}>#</span>
-                                <span className="rank-kw-text">{kw}</span>
-                                {srcInfo && (
-                                  <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>
-                                    {srcInfo.label}
-                                  </span>
-                                )}
+                                <div className="rank-divider" />
+                                <div className="rank-info">
+                                  <div className="rank-kw"><span style={{color:'var(--text-muted)'}}>#</span><span className="rank-kw-text">{kw}</span></div>
+                                  <div className="rank-post">{post.title}</div>
+                                </div>
                               </div>
-                              <a href={post.link} target="_blank" rel="noreferrer" className="rank-post" style={{color:'var(--text-sub)'}}>
-                                {post.title}
-                              </a>
-                            </div>
-                            {/* 뱃지 */}
-                            {!isChecking && (
-                              <span
-                                className={`rank-badge ${found?'exposed':'hidden'}`}
-                                style={found ? {color:rs.color,borderColor:rs.color+'60',background:rs.bg} : {}}
-                              >
-                                {found ? rs.label : '미노출'}
-                              </span>
-                            )}
-                          </div>
+                            ))}
+
+                            {/* 노출 */}
+                            {exposed.map(({ post, kw, rank }, i) => {
+                              const rs = getRankStyle(rank);
+                              const srcInfo = getSourceBadge(post.keywordSource);
+                              return (
+                                <div key={`ex_${post.logNo}_${kw}`} className="rank-row fade-up" style={{animationDelay:`${i*0.03}s`}}>
+                                  <div className="rank-num-wrap">
+                                    <div className="rank-num" style={{color:rs.color}}>{rank}</div>
+                                    <div className="rank-num-label">번째 노출</div>
+                                  </div>
+                                  <div className="rank-divider" />
+                                  <div className="rank-info">
+                                    <div className="rank-kw">
+                                      <span style={{color:rs.color,flexShrink:0}}>#</span>
+                                      <span className="rank-kw-text">{kw}</span>
+                                      {srcInfo && <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>{srcInfo.label}</span>}
+                                    </div>
+                                    <a href={post.link} target="_blank" rel="noreferrer" className="rank-post" style={{color:'var(--text-sub)'}}>{post.title}</a>
+                                  </div>
+                                  <span className="rank-badge exposed" style={{color:rs.color,borderColor:rs.color+'60',background:rs.bg}}>{rs.label}</span>
+                                </div>
+                              );
+                            })}
+
+                            {/* 미노출 - 글 단위 묶음 */}
+                            {Object.values(hiddenByPost).map(({ post, kws }, i) => {
+                              const srcInfo = getSourceBadge(post.keywordSource);
+                              return (
+                                <div key={`hd_${post.logNo}`} className="rank-row fade-up" style={{animationDelay:`${(exposed.length+i)*0.03}s`,opacity:.7}}>
+                                  <div className="rank-num-wrap">
+                                    <div className="rank-num" style={{color:'var(--rank-none)',fontSize:22}}>—</div>
+                                    <div className="rank-num-label">미노출</div>
+                                  </div>
+                                  <div className="rank-divider" />
+                                  <div className="rank-info">
+                                    <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:5}}>
+                                      {kws.map(kw => (
+                                        <span key={kw} style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:99,padding:'2px 9px'}}>#{kw}</span>
+                                      ))}
+                                      {srcInfo && <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>{srcInfo.label}</span>}
+                                    </div>
+                                    <a href={post.link} target="_blank" rel="noreferrer" className="rank-post" style={{color:'var(--text-muted)'}}>{post.title}</a>
+                                  </div>
+                                  <span className="rank-badge hidden">미노출</span>
+                                </div>
+                              );
+                            })}
+                          </>
                         );
-                      })}
+                      })()}
                     </div>
                   )}
 
