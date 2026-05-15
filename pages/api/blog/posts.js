@@ -3,39 +3,36 @@ import { fetchPostsByRSS, fetchPostTags } from '../../../lib/naverBlog';
 export const config = { api: { responseLimit: false }, maxDuration: 60 };
 
 // 제목에서 키워드 추출 (AI 없을 때 fallback)
-// 단어 1개씩 쪼개면 너무 일반적 → 2단어 조합으로 실제 검색어에 가깝게
+// 제목 자체가 검색어 → 3단어/2단어 의미 구문 단위로 추출
 function extractFromTitle(title) {
   const stopWords = new Set([
     '그리고','하지만','또는','때문에','그래서','하는','있는','없는','되는','하기',
-    '위한','대한','통한','관한','이후','이전','다음','처럼','보다','까지',
-    '완벽','가이드','방법','정리','추천','소개','총정리','모음','리스트','후기','리뷰',
+    '위한','대한','통한','관한','이후','이전','다음','처럼','보다','까지','부터',
+    '완벽한','완벽','가이드','정리','소개','총정리','모음','알아보기','알아보자',
+    '해보자','입니다','합니다','됩니다','이란','것은','것을','것이',
+    '달라지는','바뀌는','새로운','최신','핵심','중요한',
   ]);
 
-  const words = title
-    .replace(/[^\w\s가-힣]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length >= 2 && !stopWords.has(w));
+  const clean = title
+    .replace(/[!！?？,，.。~:：「」【】\[\]()（）]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
 
-  const combos = [];
+  const words = clean.split(' ').filter(w => w.length >= 2 && !stopWords.has(w));
+  const keywords = [];
 
-  // 2단어 인접 조합 (실제 사람들이 검색하는 패턴)
-  for (let i = 0; i < words.length - 1 && combos.length < 3; i++) {
-    const a = words[i], b = words[i + 1];
-    const combo = `${a} ${b}`;
-    if (combo.length <= 16 && a.length >= 2 && b.length >= 2) {
-      combos.push(combo);
-    }
+  // 3단어 조합 우선 (네이버 검색 구문으로 자연스러움)
+  for (let i = 0; i < words.length - 2 && keywords.length < 2; i++) {
+    const combo = `${words[i]} ${words[i+1]} ${words[i+2]}`;
+    if (combo.length <= 20) keywords.push(combo);
   }
 
-  // 2단어 조합이 부족하면 긴 단어 단독으로 보완
-  if (combos.length < 2) {
-    words
-      .filter(w => w.length >= 4)
-      .slice(0, 3)
-      .forEach(w => { if (!combos.includes(w)) combos.push(w); });
+  // 2단어 조합으로 보완
+  for (let i = 0; i < words.length - 1 && keywords.length < 3; i++) {
+    const combo = `${words[i]} ${words[i+1]}`;
+    if (combo.length <= 14 && !keywords.some(k => k.includes(combo))) keywords.push(combo);
   }
 
-  return [...new Set(combos)].slice(0, 3);
+  return [...new Set(keywords)].slice(0, 3);
 }
 
 // Claude AI로 키워드 추출
@@ -54,16 +51,17 @@ async function extractKeywordsWithAI(title, description) {
         max_tokens: 150,
         messages: [{
           role: 'user',
-          content: `네이버 블로그 글 제목을 보고 사람들이 실제로 네이버에서 검색할 핵심 키워드 3~4개 추출.
+          content: `네이버 블로그 글 제목을 보고, 사람들이 네이버 검색창에 실제로 입력할 검색어 3개를 추출해.
 
 제목: ${title}
-${description ? `내용 일부: ${description.slice(0, 150)}` : ''}
+${description ? `내용: ${description.slice(0, 200)}` : ''}
 
 규칙:
-- 2~6글자 구체적 키워드
-- 지역명+업종 조합 OK (예: 강남맛집, 부산카페)
-- 제품명, 브랜드명 포함
-- JSON 배열만 반환 (다른 텍스트 절대 금지): ["키워드1","키워드2","키워드3"]`,
+- 2~4단어로 구성된 검색 구문 (예: "실업급여 신청 조건", "강남 점심 맛집", "블로그 체험단 신청")
+- 제목에서 핵심 주제를 가장 잘 담은 구문 우선
+- 단독 단어 1개는 절대 안됨 (예: "맛집" X → "강남 맛집" O)
+- 지역명+업종, 제품명+후기, 주제+방법 같은 조합
+- JSON 배열만 반환, 다른 텍스트 금지: ["검색어1","검색어2","검색어3"]`,
         }],
       }),
     });
