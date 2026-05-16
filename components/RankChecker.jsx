@@ -452,15 +452,6 @@ export default function RankChecker() {
     '--glass':        'rgba(255,255,255,.8)',
     '--glass-border': 'rgba(236,72,153,.2)',
   };
-    '--rank-none':    '#9ca3af',
-    '--rank-none-bg': 'rgba(156,163,175,.1)',
-    '--inp-bg':       '#fff',
-    '--shadow':       '0 8px 40px rgba(168,85,247,.12)',
-    '--shadow-sm':    '0 2px 12px rgba(168,85,247,.08)',
-    '--header-bg':    'rgba(250,240,253,.9)',
-    '--glass':        'rgba(255,255,255,.7)',
-    '--glass-border': 'rgba(244,114,182,.2)',
-  };
 
   const css = `
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
