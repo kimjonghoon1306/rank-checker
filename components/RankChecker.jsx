@@ -456,13 +456,252 @@ export default function RankChecker() {
   const css = `
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root { ${Object.entries(vars).map(([k,v])=>`${k}:${v}`).join(';')} }
-    html,body { background:var(--bg); -webkit-font-smoothing:antialiased; }
-    ::-webkit-scrollbar { width:4px; }
-    ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:99px; }
+    html,body { background:var(--bg); height:100%; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+    ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:99px; }
 
-    .rc-wrap { font-family:'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif; min-height:100vh; background:var(--bg); color:var(--text); transition:background .35s,color .35s; overflow-x:hidden; }
+    .rc-wrap { font-family:'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif; min-height:100vh; background:var(--bg); color:var(--text); }
+
+    /* ── BG ── */
+    .rc-bg { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .orb { position:absolute; border-radius:50%; filter:blur(90px); }
+    .orb1 { width:800px;height:800px; background:radial-gradient(circle,rgba(244,114,182,.28) 0%,transparent 65%); top:-300px;right:-200px; animation:o1 20s ease-in-out infinite; }
+    .orb2 { width:600px;height:600px; background:radial-gradient(circle,rgba(192,38,211,.2) 0%,transparent 65%); bottom:-200px;left:-100px; animation:o2 25s ease-in-out infinite; }
+    .orb3 { width:400px;height:400px; background:radial-gradient(circle,rgba(236,72,153,.15) 0%,transparent 65%); top:40%;left:30%; animation:o3 18s ease-in-out infinite; }
+    @keyframes o1{0%,100%{transform:translate(0,0)}50%{transform:translate(-80px,100px)}}
+    @keyframes o2{0%,100%{transform:translate(0,0)}50%{transform:translate(100px,-80px)}}
+    @keyframes o3{0%,100%{transform:translate(0,0)}33%{transform:translate(60px,-60px)}66%{transform:translate(-50px,70px)}}
+
+    /* ── LAYOUT ── */
+    .rc-layout { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; }
+
+    /* ── HEADER ── */
+    .rc-hdr { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:64px; background:rgba(12,8,20,.9); backdrop-filter:blur(24px); border-bottom:1px solid rgba(244,114,182,.2); position:sticky; top:0; z-index:100; flex-shrink:0; box-shadow:0 1px 24px rgba(236,72,153,.15); }
+    .rc-logo { display:flex; align-items:center; gap:10px; }
+    .logo-icon { width:36px;height:36px;border-radius:10px; background:linear-gradient(135deg,#f472b6,#c026d3); display:flex;align-items:center;justify-content:center;font-size:18px; box-shadow:0 4px 16px rgba(244,114,182,.5); flex-shrink:0; }
+    .logo-title { font-size:17px;font-weight:900;letter-spacing:-.5px; background:linear-gradient(135deg,#f9a8d4,#f472b6); -webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+    .logo-sub { font-size:9px;color:rgba(244,114,182,.5);font-weight:700;letter-spacing:.5px;margin-top:1px; }
+    .hdr-right { display:flex;align-items:center;gap:8px; }
+    .hdr-btn { height:34px;padding:0 14px;border-radius:9px;border:1px solid rgba(244,114,182,.25);background:rgba(244,114,182,.08);color:#f9a8d4;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px; }
+    .hdr-btn:hover { background:rgba(244,114,182,.2);border-color:rgba(244,114,182,.5); }
+    .hdr-btn-icon { width:34px;padding:0;justify-content:center;font-size:15px; }
+    .hdr-btn-pink { background:linear-gradient(135deg,rgba(244,114,182,.2),rgba(192,38,211,.15));border-color:rgba(244,114,182,.4); }
+
+    /* ── TABS ── */
+    .rc-tabs { display:flex;align-items:center;gap:4px;background:rgba(244,114,182,.06);border-radius:10px;padding:3px;border:1px solid rgba(244,114,182,.15); }
+    .rc-tab { padding:6px 16px;font-size:12px;font-weight:700;color:rgba(249,168,212,.5);border:none;background:none;cursor:pointer;font-family:inherit;border-radius:7px;transition:all .2s;white-space:nowrap; }
+    .rc-tab.active { background:linear-gradient(135deg,#f472b6,#c026d3);color:#fff;box-shadow:0 2px 12px rgba(244,114,182,.4); }
+
+    /* ── PC 2컬럼 ── */
+    .rc-body { display:flex;flex:1; }
+    .rc-sidebar { width:340px;flex-shrink:0;border-right:1px solid rgba(244,114,182,.12);padding:24px 20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;height:calc(100vh - 64px);position:sticky;top:64px; background:rgba(12,8,20,.4); }
+    .rc-main { flex:1;min-width:0;padding:24px;overflow-y:auto; }
+
+    /* ── INPUT ── */
+    .inp-label { font-size:10px;color:rgba(244,114,182,.6);font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px; }
+    .inp-prefix-wrap { position:relative; }
+    .inp-prefix { position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:10px;color:rgba(244,114,182,.4);pointer-events:none;white-space:nowrap; }
+    .inp { width:100%;height:48px;padding-right:12px;background:rgba(244,114,182,.07);border:1.5px solid rgba(244,114,182,.2);border-radius:12px;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;outline:none;transition:all .25s; }
+    .inp:focus { border-color:#f472b6;box-shadow:0 0 0 4px rgba(244,114,182,.15);background:rgba(244,114,182,.1); }
+    .inp::placeholder { color:rgba(244,114,182,.3);font-weight:400; }
+    .inp-pl { padding-left:120px; }
+    .inp-plain { padding-left:12px; }
+    .inp-ta { height:90px;padding:12px;resize:none;line-height:1.7; }
+    .btn-pink { width:100%;height:48px;background:linear-gradient(135deg,#f472b6,#c026d3);border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(244,114,182,.4);letter-spacing:-.2px; }
+    .btn-pink:hover { transform:translateY(-2px);box-shadow:0 8px 32px rgba(244,114,182,.55);filter:brightness(1.08); }
+    .btn-pink:active { transform:translateY(0); }
+    .btn-pink:disabled { opacity:.3;cursor:not-allowed;transform:none;filter:none;box-shadow:none; }
+    .btn-ghost { height:34px;padding:0 14px;background:rgba(244,114,182,.06);border:1px solid rgba(244,114,182,.2);border-radius:9px;color:rgba(244,114,182,.7);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s; }
+    .btn-ghost:hover { background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.4);color:#f472b6; }
+    .err-box { padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;font-size:12px;color:#f87171;line-height:1.6; }
+
+    /* ── PROGRESS ── */
+    .prog-card { background:rgba(244,114,182,.06);border:1px solid rgba(244,114,182,.15);border-radius:14px;padding:16px 18px; }
+    .prog-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px; }
+    .prog-lbl { font-size:13px;color:rgba(249,168,212,.7);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0; }
+    .prog-pct { font-size:15px;font-weight:900;background:linear-gradient(135deg,#f472b6,#c026d3);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0; }
+    .prog-bar { height:5px;background:rgba(244,114,182,.1);border-radius:99px;overflow:hidden; }
+    .prog-fill { height:100%;background:linear-gradient(90deg,#f472b6,#c026d3,#fbbf24);border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1); }
+    .stop-btn { padding:4px 12px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);border-radius:7px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0; }
+
+    /* ── STATS ── */
+    .stats-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px; }
+    .stat-box { background:rgba(244,114,182,.06);border:1px solid rgba(244,114,182,.15);border-radius:14px;padding:14px;text-align:center;transition:all .25s;cursor:default; }
+    .stat-box:hover { background:rgba(244,114,182,.12);border-color:rgba(244,114,182,.35);transform:translateY(-2px);box-shadow:0 6px 20px rgba(244,114,182,.2); }
+    .stat-ico { font-size:20px;margin-bottom:5px; }
+    .stat-num { font-size:26px;font-weight:900;line-height:1;margin-bottom:3px;letter-spacing:-1px; }
+    .stat-lbl { font-size:10px;color:rgba(244,114,182,.5);font-weight:700;letter-spacing:.4px; }
+
+    /* ── SECTION HEADER ── */
+    .sec-hdr { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap; }
+    .view-toggle { display:flex;gap:3px;background:rgba(244,114,182,.06);border-radius:10px;padding:3px;border:1px solid rgba(244,114,182,.15); }
+    .vbtn { flex:1;padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap; }
+    .vbtn.on { background:linear-gradient(135deg,#f472b6,#c026d3);color:#fff;box-shadow:0 2px 12px rgba(244,114,182,.4); }
+    .vbtn:not(.on) { background:none;color:rgba(244,114,182,.4); }
+
+    /* ── RANK ROWS ── */
+    .rank-list { display:flex;flex-direction:column;gap:8px; }
+    .rank-row { display:flex;align-items:center;gap:14px;background:rgba(244,114,182,.05);border:1px solid rgba(244,114,182,.12);border-radius:14px;padding:14px 16px;transition:all .25s; }
+    .rank-row:hover { border-color:rgba(244,114,182,.4);background:rgba(244,114,182,.09);box-shadow:0 4px 20px rgba(244,114,182,.15);transform:translateY(-1px); }
+    .rnum-wrap { display:flex;flex-direction:column;align-items:center;min-width:48px;flex-shrink:0; }
+    .rnum { font-size:30px;font-weight:900;line-height:1;letter-spacing:-2px; }
+    .rnum-sub { font-size:9px;font-weight:700;color:rgba(244,114,182,.4);letter-spacing:.3px;margin-top:2px;white-space:nowrap; }
+    .rdiv { width:1px;height:44px;background:rgba(244,114,182,.15);flex-shrink:0; }
+    .rinfo { flex:1;min-width:0; }
+    .rkw { font-size:14px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap; }
+    .rkw-text { white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px; }
+    .rpost { font-size:11px;color:rgba(244,114,182,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;display:block; }
+    .rpost:hover { color:#f472b6; }
+    .rbadge { font-size:12px;font-weight:800;padding:5px 13px;border-radius:99px;flex-shrink:0;border:1.5px solid;white-space:nowrap; }
+    .rbadge-hidden { background:rgba(139,111,139,.1);color:rgba(139,111,139,.7);border-color:transparent; }
+
+    /* ── POST CARDS ── */
+    .post-list { display:flex;flex-direction:column;gap:8px; }
+    .post-card { background:rgba(244,114,182,.05);border:1px solid rgba(244,114,182,.12);border-radius:14px;padding:16px;transition:all .2s; }
+    .post-card:hover { border-color:rgba(244,114,182,.3);background:rgba(244,114,182,.08); }
+    .post-head { display:flex;align-items:flex-start;gap:10px;margin-bottom:10px; }
+    .post-num { font-size:11px;color:rgba(244,114,182,.35);font-weight:700;min-width:18px;padding-top:2px;text-align:right;flex-shrink:0; }
+    .post-meta { flex:1;min-width:0; }
+    .post-title { font-size:13px;font-weight:700;color:var(--text);text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px; }
+    .post-title:hover { color:#f472b6; }
+    .post-date { font-size:11px;color:rgba(244,114,182,.35); }
+    .post-best { font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;flex-shrink:0;white-space:nowrap; }
+    .kw-chips { display:flex;flex-wrap:wrap;gap:5px;padding-left:28px; }
+    .kw-chip { font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px;border:1.5px solid;transition:all .2s;display:flex;align-items:center;gap:4px; }
+
+    /* ── BADGES ── */
+    .src-badge { font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;border:1px solid;flex-shrink:0; }
+    .comp-badge { font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;border:1px solid;flex-shrink:0; }
+    .insight-box { margin-top:8px;padding:8px 12px;border-radius:9px;border:1px solid;font-size:11px;font-weight:600;line-height:1.6;margin-left:28px; }
+    .opp-glow { box-shadow:0 0 0 2px rgba(16,185,129,.35) !important; }
+
+    /* ── REPORT ── */
+    .report-card { background:rgba(244,114,182,.05);border:1px solid rgba(244,114,182,.15);border-radius:16px;padding:18px;margin-bottom:16px; }
+    .report-hdr { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid rgba(244,114,182,.12); }
+    .report-title { font-size:14px;font-weight:800;color:var(--text); }
+    .report-section { padding:12px 0;border-top:1px solid rgba(244,114,182,.08); }
+    .report-section:first-of-type { border-top:none;padding-top:0; }
+    .report-stitle { font-size:12px;font-weight:800;margin-bottom:6px; }
+    .report-body { font-size:11px;color:rgba(249,168,212,.6);line-height:1.85; }
+
+    /* ── KW RANKER ── */
+    .kw-2col { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px; }
+    .kw-res-list { background:rgba(244,114,182,.05);border:1px solid rgba(244,114,182,.15);border-radius:14px;overflow:hidden; }
+    .kw-res-hdr { padding:12px 16px;border-bottom:1px solid rgba(244,114,182,.1);font-size:10px;font-weight:700;color:rgba(244,114,182,.5);letter-spacing:.5px;display:flex;justify-content:space-between; }
+    .kw-res-row { padding:12px 16px;border-bottom:1px solid rgba(244,114,182,.06);transition:background .15s;display:flex;flex-direction:column;gap:6px; }
+    .kw-res-row:last-child { border-bottom:none; }
+    .kw-res-row:hover { background:rgba(244,114,182,.07); }
+    .kw-res-top { display:flex;align-items:center;justify-content:space-between; }
+    .kw-res-left { display:flex;align-items:center;gap:10px;min-width:0; }
+    .kw-res-idx { font-size:10px;color:rgba(244,114,182,.4);font-weight:700;min-width:16px;flex-shrink:0; }
+    .kw-res-rank { font-size:20px;font-weight:900;min-width:52px;text-align:center;flex-shrink:0; }
+    .kw-res-name { font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .kw-res-lbl { font-size:11px;color:rgba(244,114,182,.45);margin-top:2px; }
+    .kw-stats { padding:10px 16px;display:flex;gap:12px;font-size:11px;color:rgba(244,114,182,.4);border-top:1px solid rgba(244,114,182,.08);flex-wrap:wrap; }
+
+    /* ── TIP BOX ── */
+    .tip-box { padding:12px 14px;background:rgba(244,114,182,.07);border:1px solid rgba(244,114,182,.18);border-radius:12px;font-size:11px;color:rgba(249,168,212,.65);line-height:1.85; }
+    .src-dot { width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px; }
+
+    /* ── FLOATING BTN ── */
+    @keyframes floatAnim{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes pinkGlow{0%,100%{box-shadow:0 4px 24px rgba(244,114,182,.5)}50%{box-shadow:0 8px 40px rgba(244,114,182,.75),0 0 0 8px rgba(244,114,182,.05)}}
+    .float-btn { position:fixed;bottom:24px;right:22px;z-index:150;display:flex;align-items:center;gap:8px;padding:13px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,#f472b6,#c026d3);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;animation:floatAnim 3s ease-in-out infinite,pinkGlow 3s ease-in-out infinite;letter-spacing:-.1px; }
+    .float-btn:hover { animation:none;transform:scale(1.08);box-shadow:0 8px 40px rgba(244,114,182,.7); }
+
+    /* ── GUIDE MODAL ── */
+    .guide-modal { position:fixed;bottom:0;left:0;right:0;max-height:88vh;background:var(--bg2);z-index:201;border-radius:24px 24px 0 0;box-shadow:0 -8px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s cubic-bezier(.4,0,.2,1); }
+    .modal-handle { width:40px;height:4px;border-radius:99px;background:rgba(244,114,182,.3);margin:12px auto 0;flex-shrink:0; }
+    .modal-head { padding:16px 20px 14px;border-bottom:1px solid rgba(244,114,182,.12);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+    .modal-title { font-size:15px;font-weight:800;color:var(--text); }
+    .modal-close { width:34px;height:34px;border-radius:10px;border:1px solid rgba(244,114,182,.2);background:rgba(244,114,182,.07);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text); }
+    .modal-body { padding:16px 20px 40px;overflow-y:auto; }
+    .guide-sec { padding:14px 0;border-bottom:1px solid rgba(244,114,182,.08); }
+    .guide-sec:last-child { border-bottom:none; }
+    .guide-sec-title { font-size:13px;font-weight:800;color:var(--text);margin-bottom:7px; }
+    .guide-p { font-size:12px;color:rgba(249,168,212,.6);line-height:1.8;margin-bottom:8px; }
+    .guide-rows { display:flex;flex-direction:column;gap:6px; }
+    .guide-row { display:flex;align-items:center;gap:10px; }
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+    /* ── SETTINGS DRAWER ── */
+    .overlay { position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;backdrop-filter:blur(6px); }
+    .drawer { position:fixed;bottom:0;left:0;right:0;max-height:92vh;background:var(--bg2);z-index:201;border-radius:24px 24px 0 0;box-shadow:0 -8px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s cubic-bezier(.4,0,.2,1); }
+    .drawer-handle { width:40px;height:4px;border-radius:99px;background:rgba(244,114,182,.3);margin:12px auto 0;flex-shrink:0; }
+    .drawer-head { padding:16px 20px 14px;border-bottom:1px solid rgba(244,114,182,.12);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+    .drawer-title { font-size:15px;font-weight:800;color:var(--text); }
+    .drawer-close { width:34px;height:34px;border-radius:10px;border:1px solid rgba(244,114,182,.2);background:rgba(244,114,182,.07);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text); }
+    .drawer-body { padding:16px 20px;flex:1;display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding-bottom:40px; }
+    .ai-card { background:rgba(244,114,182,.05);border:1.5px solid rgba(244,114,182,.15);border-radius:14px;padding:14px;transition:all .2s; }
+    .ai-card.sel { border-color:#f472b6;background:rgba(244,114,182,.1); }
+    .ai-card-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px; }
+    .ai-name { font-size:13px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;min-width:0; }
+    .badge-free { font-size:9px;font-weight:700;padding:3px 7px;border-radius:99px;background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);white-space:nowrap;flex-shrink:0; }
+    .badge-partial { font-size:9px;font-weight:700;padding:3px 7px;border-radius:99px;background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3);white-space:nowrap;flex-shrink:0; }
+    .badge-paid { font-size:9px;font-weight:700;padding:3px 7px;border-radius:99px;background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);white-space:nowrap;flex-shrink:0; }
+    .badge-sel { font-size:9px;font-weight:700;padding:3px 7px;border-radius:99px;background:rgba(244,114,182,.15);color:#f472b6;border:1px solid rgba(244,114,182,.4);white-space:nowrap;flex-shrink:0; }
+    .ai-inp-col { display:flex;flex-direction:column;gap:7px; }
+    .ai-inp-row { display:flex;gap:7px; }
+    .ai-inp { flex:1;height:42px;padding:0 12px;background:rgba(244,114,182,.07);border:1.5px solid rgba(244,114,182,.18);border-radius:10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:all .2s;min-width:0; }
+    .ai-inp:focus { border-color:#f472b6;box-shadow:0 0 0 3px rgba(244,114,182,.12); }
+    .ai-inp::placeholder { color:rgba(244,114,182,.3);font-size:11px; }
+    .issue-btn { height:42px;padding:0 13px;border:1.5px solid rgba(244,114,182,.25);border-radius:10px;background:rgba(244,114,182,.07);color:rgba(244,114,182,.7);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s;flex-shrink:0; }
+    .issue-btn:hover { border-color:#f472b6;color:#f472b6; }
+    .use-btn { width:100%;height:36px;border-radius:9px;border:1.5px solid rgba(244,114,182,.25);background:rgba(244,114,182,.06);color:rgba(244,114,182,.6);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-top:4px; }
+    .use-btn.sel { background:linear-gradient(135deg,#f472b6,#c026d3);border-color:#f472b6;color:#fff;box-shadow:0 2px 12px rgba(244,114,182,.4); }
+    .dev-warn { background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:11px;padding:11px 14px;font-size:11px;color:#f59e0b;line-height:1.8; }
+    .ai-ok-info { background:rgba(244,114,182,.08);border:1px solid rgba(244,114,182,.3);border-radius:10px;padding:10px 14px;font-size:12px;color:#f472b6;font-weight:600; }
+    .ai-no-info { background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:10px 14px;font-size:12px;color:#f87171;font-weight:600; }
+
+    /* ── PC RESPONSIVE ── */
+    @media(min-width:641px) {
+      .drawer { bottom:auto;top:0;left:auto;right:0;height:100%;max-height:100%;max-width:440px;border-radius:0;box-shadow:-8px 0 60px rgba(0,0,0,.4); }
+      .drawer-handle { display:none; }
+      .guide-modal { left:auto;right:0;width:480px;border-radius:24px 24px 0 0; }
+      .stats-grid { grid-template-columns:repeat(4,1fr); }
+      .kw-2col { grid-template-columns:1fr 1fr; }
+      .float-btn { bottom:28px;right:28px; }
+    }
+
+    /* ── LIGHT MODE ── */
+    .rc-hdr { background:rgba(255,240,248,.92); }
+    .logo-title { background:linear-gradient(135deg,#ec4899,#be185d);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+    .rc-sidebar { background:rgba(255,240,248,.5); }
+
+    /* ── MOBILE ── */
+    @media(max-width:640px) {
+      .rc-hdr { padding:0 14px;height:58px; }
+      .logo-title { font-size:15px; }
+      .logo-sub { display:none; }
+      .logo-icon { width:32px;height:32px;font-size:16px; }
+      .rc-body { flex-direction:column; }
+      .rc-sidebar { width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid rgba(244,114,182,.12);padding:16px;gap:12px; }
+      .rc-main { padding:14px;padding-bottom:100px; }
+      .inp { height:46px; }
+      .btn-pink { height:46px;font-size:14px; }
+      .stats-grid { grid-template-columns:repeat(2,1fr);gap:8px; }
+      .stat-num { font-size:22px; }
+      .rnum { font-size:24px; }
+      .rnum-wrap { min-width:42px; }
+      .rkw-text { max-width:130px; }
+      .sec-hdr { flex-direction:column;align-items:flex-start; }
+      .view-toggle { width:100%; }
+      .hdr-btn span:last-child { display:none; }
+      .kw-2col { grid-template-columns:1fr; }
+      .float-btn { bottom:18px;right:14px;padding:11px 16px;font-size:12px; }
+      .rc-tabs { padding:3px; }
+      .rc-tab { padding:6px 12px;font-size:11px; }
+    }
+    @media(max-width:380px) {
+      .stat-num { font-size:20px; }
+      .rnum { font-size:20px; }
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+    .fu { animation:fadeUp .3s ease forwards; }
+    .pulse { animation:pulse 1.5s infinite; }
+  `;
 
     /* ─ BG 파티클 ─ */
     .rc-bg { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
@@ -718,771 +957,530 @@ export default function RankChecker() {
   return (
     <div className="rc-wrap" style={vars}>
       <style>{css}</style>
-      {/* BG 파티클 */}
-      <div className="rc-bg">
-        <div className="rc-bg-orb rc-bg-orb1"/>
-        <div className="rc-bg-orb rc-bg-orb2"/>
-        <div className="rc-bg-orb rc-bg-orb3"/>
-      </div>
-      <div className="rc-inner">
+      <div className="rc-bg"><div className="orb orb1"/><div className="orb orb2"/><div className="orb orb3"/></div>
 
+      <div className="rc-layout">
         {/* ─── HEADER ─── */}
-        <div className="rc-header">
-          <div className="rc-header-top">
-            <div className="rc-logo">
-              <div className="rc-logo-icon">🌸</div>
-              <div>
-                <div className="rc-logo-text">블로그 순위 체커</div>
-                <div className="rc-logo-sub">NAVER BLOG RANK TRACKER</div>
-              </div>
-            </div>
-            <div className="rc-header-actions">
-              {isDone && (
-                <>
-                  <button className="hdr-btn hdr-btn-pdf" onClick={() => generatePDF(blogId, posts, rankResults)}>
-                    <span>📄</span><span>SEO 보고서</span>
-                  </button>
-                  <button className="hdr-btn hdr-btn-csv" onClick={() => exportCSV(posts, rankResults)}>
-                    <span>📊</span><span>순위 저장</span>
-                  </button>
-                </>
-              )}
-              <button className="hdr-btn hdr-btn-icon" title="AI 설정" onClick={() => setShowSettings(true)}>⚙️</button>
-              <button className="hdr-btn hdr-btn-icon" onClick={() => setTheme(t => t==='dark'?'light':'dark')}>
-                {dark ? '☀️' : '🌙'}
-              </button>
+        <div className="rc-hdr">
+          <div className="rc-logo">
+            <div className="logo-icon">🌸</div>
+            <div>
+              <div className="logo-title">블로그 순위 체커</div>
+              <div className="logo-sub">NAVER BLOG RANK TRACKER</div>
             </div>
           </div>
-          <div className="rc-tabs">
-            {[['posts','📊 글 순위 분석'],['keyword','🔍 키워드 랭커']].map(([v,l]) => (
-              <button key={v} className={`rc-tab${tab===v?' active':''}`} onClick={() => setTab(v)}>{l}</button>
-            ))}
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <div className="rc-tabs">
+              {[['posts','📊 글 순위'],['keyword','🔍 키워드']].map(([v,l]) => (
+                <button key={v} className={`rc-tab${tab===v?' active':''}`} onClick={() => setTab(v)}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="hdr-right">
+            {isDone && <>
+              <button className="hdr-btn hdr-btn-pink" onClick={() => generatePDF(blogId, posts, rankResults)}>
+                <span>📄</span><span>SEO보고서</span>
+              </button>
+              <button className="hdr-btn" onClick={() => exportCSV(posts, rankResults)}>
+                <span>📊</span><span>순위저장</span>
+              </button>
+            </>}
+            <button className="hdr-btn hdr-btn-icon" onClick={() => setShowSettings(true)}>⚙️</button>
+            <button className="hdr-btn hdr-btn-icon" onClick={() => setTheme(t => t==='dark'?'light':'dark')}>
+              {dark?'☀️':'🌙'}
+            </button>
           </div>
         </div>
 
-        {/* ─── 설정 드로어 ─── */}
-        {showSettings && (() => {
-          const activeAI = getActiveAI();
-          const AI_LIST = [
-            {
-              key: 'groq', label: 'Groq (Llama 3)', emoji: '⚡',
-              price: 'free', priceLabel: '무료',
-              placeholder: 'gsk_xxxxxxxxxxxxxxxx',
-              issueUrl: 'https://console.groq.com/keys',
-              desc: 'Meta Llama 3 기반 · 가장 빠름 · 완전 무료',
-            },
-            {
-              key: 'gemini', label: 'Google Gemini', emoji: '✨',
-              price: 'partial', priceLabel: '일부 무료 / 유료',
-              placeholder: 'AIzaSyxxxxxxxxxxxxxxx',
-              issueUrl: 'https://aistudio.google.com/app/apikey',
-              desc: 'Gemini 2.0 Flash · 1,500회/일 무료',
-            },
-            {
-              key: 'openai', label: 'OpenAI GPT', emoji: '🤖',
-              price: 'paid', priceLabel: '유료',
-              placeholder: 'sk-xxxxxxxxxxxxxxxx',
-              issueUrl: 'https://platform.openai.com/api-keys',
-              desc: 'GPT-4o Mini · 고품질 · 사용량 과금',
-            },
-          ];
-          return (
-            <>
-              <div className="settings-overlay" onClick={() => setShowSettings(false)} />
-              <div className="settings-drawer">
-                <div className="drawer-handle"/>
-                <div className="settings-head">
-                  <div className="settings-title">🤖 AI 키워드 분석 설정</div>
-                  <button className="settings-close" onClick={() => setShowSettings(false)}>✕</button>
-                </div>
-                <div className="settings-body">
+        {/* ─── BODY ─── */}
+        <div className="rc-body">
 
-                  {/* 디바이스 경고 */}
-                  <div className="device-warn">
-                    ⚠️ <strong>기기별 저장 안내</strong><br/>
-                    API 키는 현재 기기의 브라우저에만 저장됩니다.<br/>
-                    <strong>PC ↔ 모바일 ↔ 태블릿 변경 시</strong> 각 기기에서 다시 입력해야 합니다.<br/>
-                    서버에 저장되지 않으며 다른 사람과 공유되지 않습니다.
+          {/* ── SIDEBAR ── */}
+          <div className="rc-sidebar">
+            {tab === 'posts' && (
+              <>
+                <div>
+                  <div className="inp-label">네이버 블로그 ID</div>
+                  <div className="inp-prefix-wrap">
+                    <span className="inp-prefix">blog.naver.com/</span>
+                    <input className="inp inp-pl" placeholder="myblogid" value={blogId}
+                      onChange={e=>setBlogId(e.target.value)}
+                      onKeyDown={e=>e.key==='Enter'&&!isRunning&&handleStart()} />
                   </div>
+                </div>
+                <button className="btn-pink" onClick={handleStart} disabled={isRunning}>
+                  {isRunning ? '분석 중...' : '🔍 순위 분석 시작'}
+                </button>
+                {error && <div className="err-box">⚠️ {error}</div>}
 
-                  {/* 현재 활성 상태 */}
-                  {activeAI ? (
-                    <div className="active-ai-info">
-                      ✅ 사용 중: <strong>{AI_LIST.find(a=>a.key===activeAI.provider)?.label}</strong>
+                {/* 진행 상태 */}
+                {isRunning && (
+                  <div className="prog-card fu">
+                    <div className="prog-row">
+                      <div className="prog-lbl">
+                        {phase==='fetching' ? '📥 글 목록 수집 중...' : `🔍 "${progress.label}" 확인 중`}
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        {phase==='ranking' && <span className="prog-pct">{pct}%</span>}
+                        <button className="stop-btn" onClick={()=>abortRef.current=true}>중단</button>
+                      </div>
                     </div>
-                  ) : (
-                    <div style={{padding:'10px 14px',borderRadius:10,background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)',fontSize:12,color:'#f87171',fontWeight:600}}>
-                      ❌ 선택된 AI 없음 — AI 선택 시 키워드 품질이 향상됩니다
+                    <div className="prog-bar">
+                      <div className="prog-fill" style={{width:phase==='fetching'?'8%':`${pct}%`}}/>
                     </div>
-                  )}
+                    {posts.length>0 && <div style={{marginTop:8,fontSize:11,color:'rgba(244,114,182,.4)'}}>{posts.length}개 글 수집 완료</div>}
+                  </div>
+                )}
 
-                  {/* AI 카드 3개 - 각각 독립 */}
-                  {AI_LIST.map(ai => {
-                    const isSelected = selectedAI === ai.key;
-                    const hasKey = !!aiKeys[ai.key].trim();
-                    return (
-                      <div key={ai.key} className={`ai-card${isSelected ? ' active-card' : ''}`}>
-                        <div className="ai-card-head">
-                          <div className="ai-name">
-                            <span>{ai.emoji}</span>
-                            <span>{ai.label}</span>
-                            {isSelected && <span className="ai-active-badge">선택됨</span>}
+                {/* 통계 */}
+                {posts.length > 0 && (
+                  <div className="stats-grid fu">
+                    {[
+                      {ico:'📄',num:stats.total,lbl:'전체 글',color:'var(--text)'},
+                      {ico:'🥇',num:stats.top3,lbl:'TOP 3',color:'#f472b6'},
+                      {ico:'🏆',num:stats.top10,lbl:'TOP 10',color:'#c026d3'},
+                      {ico:'✅',num:stats.exposed,lbl:'노출',color:'#10b981'},
+                    ].map(s=>(
+                      <div key={s.lbl} className="stat-box">
+                        <div className="stat-ico">{s.ico}</div>
+                        <div className="stat-num" style={{color:s.color}}>{s.num}</div>
+                        <div className="stat-lbl">{s.lbl}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {isDone && (
+                  <div style={{display:'flex',gap:8}}>
+                    <button className="btn-ghost" style={{flex:1}} onClick={()=>{setPosts([]);setRankResults({});setPhase('idle');setBlogId('');setError('');}}>초기화</button>
+                  </div>
+                )}
+
+                <div className="tip-box">
+                  💡 블로그 ID만 입력하면 자동으로 키워드 수집 후 순위 분석<br/>
+                  <span style={{display:'flex',gap:10,marginTop:4,flexWrap:'wrap'}}>
+                    <span><span className="src-dot" style={{background:'#10b981'}}/>태그</span>
+                    <span><span className="src-dot" style={{background:'#a78bfa'}}/>AI 분석</span>
+                    <span><span className="src-dot" style={{background:'#777'}}/>제목 파싱</span>
+                  </span>
+                </div>
+              </>
+            )}
+
+            {tab === 'keyword' && (
+              <>
+                <div>
+                  <div className="inp-label">블로그 ID</div>
+                  <input className="inp inp-plain" placeholder="myblogid" value={kwBlogId} onChange={e=>setKwBlogId(e.target.value)} />
+                </div>
+                <div>
+                  <div className="inp-label">키워드 <span style={{color:'rgba(244,114,182,.4)',fontWeight:400,textTransform:'none'}}>줄바꿈으로 여러 개</span></div>
+                  <textarea className="inp inp-ta" placeholder={'강남 맛집\n부산 카페\n블로그 체험단'} value={kwInput} onChange={e=>setKwInput(e.target.value)} />
+                </div>
+                <button className="btn-pink" onClick={handleKwCheck} disabled={kwLoading||!kwBlogId||!kwInput}>
+                  {kwLoading?'확인 중...':'🔍 순위 확인'}
+                </button>
+                <div className="tip-box">
+                  💡 노리는 키워드를 입력해서 현재 순위를 확인하고 글 전략을 세우세요
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── MAIN ── */}
+          <div className="rc-main">
+
+            {/* ══ 글 순위 탭 ══ */}
+            {tab === 'posts' && (
+              <>
+                {/* 분석 리포트 */}
+                {isDone && (() => {
+                  const allRows = posts.flatMap(p=>(p.keywords||[]).map(kw=>{
+                    const r=rankResults[`${p.logNo}_${kw}`];
+                    return {post:p,kw,rank:r?.rank,found:r?.found??false,total:r?.total??0};
+                  }));
+                  const seo=calcSEOScore(allRows);
+                  const top3=allRows.filter(r=>r.found&&r.rank<=3).sort((a,b)=>a.rank-b.rank);
+                  const top10=allRows.filter(r=>r.found&&r.rank>3&&r.rank<=10).sort((a,b)=>a.rank-b.rank);
+                  const opps=allRows.filter(r=>!r.found&&r.total>0&&r.total<3000&&!titleContains(r.post.title,r.kw));
+                  const easy=allRows.filter(r=>!r.found&&r.total>0&&r.total<3000&&titleContains(r.post.title,r.kw));
+                  const mid=allRows.filter(r=>!r.found&&r.total>=3000&&r.total<150000);
+                  const high=allRows.filter(r=>!r.found&&r.total>=150000);
+                  const expRate=allRows.length?Math.round(allRows.filter(r=>r.found).length/allRows.length*100):0;
+                  return (
+                    <div className="report-card fu">
+                      <div className="report-hdr">
+                        <div className="report-title">📋 SEO 분석 리포트</div>
+                        <div style={{display:'flex',alignItems:'center',gap:10}}>
+                          <div style={{textAlign:'center'}}>
+                            <div style={{fontSize:30,fontWeight:900,color:seo.color,lineHeight:1}}>{seo.grade}</div>
+                            <div style={{fontSize:9,color:'rgba(244,114,182,.4)',fontWeight:700,marginTop:2}}>SEO 등급</div>
                           </div>
-                          <span className={`ai-price-${ai.price}`}>{ai.priceLabel}</span>
-                        </div>
-                        <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10}}>{ai.desc}</div>
-                        <div className="ai-inp-col">
-                          <div className="ai-inp-row">
-                            <input
-                              className="ai-inp"
-                              type="password"
-                              placeholder={ai.placeholder}
-                              value={aiKeys[ai.key]}
-                              onChange={e => updateAiKey(ai.key, e.target.value)}
-                            />
-                            <button className="issue-btn" onClick={() => window.open(ai.issueUrl, '_blank')}>
-                              🔑 발급받기
-                            </button>
+                          <div style={{width:1,height:36,background:'rgba(244,114,182,.15)'}}/>
+                          <div>
+                            <div style={{fontSize:18,fontWeight:900,color:seo.color}}>{seo.score}<span style={{fontSize:11,color:'rgba(244,114,182,.4)'}}>/100</span></div>
+                            <div style={{fontSize:10,color:'rgba(249,168,212,.5)',fontWeight:600}}>{seo.label}</div>
                           </div>
                         </div>
-                        <div style={{marginTop:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <span style={{fontSize:11,color: hasKey ? '#10b981' : 'var(--text-muted)',fontWeight:600}}>
-                            {hasKey ? '✓ 키 저장됨' : '키 미입력'}
-                          </span>
-                          <button
-                            className={`use-ai-btn${isSelected?' selected':''}`}
-                            style={{width:'auto',padding:'0 16px'}}
-                            onClick={() => updateSelectedAI(isSelected ? '' : ai.key)}
-                          >
-                            {isSelected ? '✓ 사용 중' : '이 AI 사용'}
+                      </div>
+                      <div style={{marginBottom:14}}>
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'rgba(244,114,182,.5)',fontWeight:700,marginBottom:5}}>
+                          <span>키워드 노출률</span><span style={{color:seo.color}}>{expRate}%</span>
+                        </div>
+                        <div style={{height:5,background:'rgba(244,114,182,.1)',borderRadius:99,overflow:'hidden'}}>
+                          <div style={{width:`${expRate}%`,height:'100%',background:`linear-gradient(90deg,${seo.color},#f472b6)`,borderRadius:99,transition:'width .6s ease'}}/>
+                        </div>
+                      </div>
+                      {top3.length>0&&<div className="report-section">
+                        <div className="report-stitle" style={{color:'#fbbf24'}}>🥇 TOP 3 — 지금 잘 되고 있어요</div>
+                        <div className="report-body" style={{marginBottom:8}}>이 키워드들은 네이버 검색 3위 안에 노출 중이에요. 글을 최신 상태로 유지하고 내부 링크를 연결해 순위를 지켜나가세요.</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                          {top3.slice(0,6).map((r,i)=><span key={i} style={{fontSize:11,fontWeight:800,padding:'4px 10px',borderRadius:99,background:'rgba(251,191,36,.1)',color:'#fbbf24',border:'1px solid rgba(251,191,36,.3)'}}>#{r.kw} · {r.rank}위</span>)}
+                        </div>
+                      </div>}
+                      {top10.length>0&&<div className="report-section">
+                        <div className="report-stitle" style={{color:'#f472b6'}}>🏆 TOP 4~10위 — 첫 페이지 진입 완료</div>
+                        <div className="report-body" style={{marginBottom:8}}>검색 첫 페이지에 노출 중이에요. 글 조회수와 체류 시간을 높이면 3위 안으로 올라갈 수 있어요.</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                          {top10.slice(0,6).map((r,i)=><span key={i} style={{fontSize:11,fontWeight:800,padding:'4px 10px',borderRadius:99,background:'rgba(244,114,182,.1)',color:'#f472b6',border:'1px solid rgba(244,114,182,.3)'}}>#{r.kw} · {r.rank}위</span>)}
+                        </div>
+                      </div>}
+                      {opps.length>0&&<div className="report-section">
+                        <div className="report-stitle" style={{color:'#10b981'}}>🎯 지금 당장 — 제목만 바꿔도 올라가요</div>
+                        <div className="report-body" style={{marginBottom:8}}>경쟁자 3,000명 미만인데 글 제목에 키워드가 없어요. 👉 제목 앞에 추가하는 것만으로 상위 노출 가능성이 크게 높아집니다.</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                          {opps.slice(0,8).map((r,i)=><span key={i} style={{fontSize:11,fontWeight:800,padding:'4px 10px',borderRadius:99,background:'rgba(16,185,129,.1)',color:'#10b981',border:'1px solid rgba(16,185,129,.3)'}}>#{r.kw}</span>)}
+                        </div>
+                      </div>}
+                      {easy.length>0&&<div className="report-section">
+                        <div className="report-stitle" style={{color:'#60a5fa'}}>📝 본문 보강 필요 — 제목엔 있는데 미노출</div>
+                        <div className="report-body">본문에서 키워드를 <strong>2~3번 자연스럽게</strong> 반복하고 글 길이를 1,500자 이상으로 늘려보세요.</div>
+                      </div>}
+                      {high.length>0&&<div className="report-section">
+                        <div className="report-stitle" style={{color:'#f87171'}}>⚠️ 경쟁 포화 — 롱테일로 교체하세요</div>
+                        <div className="report-body">검색 결과 15만 개 이상이에요. "맛집" → "강릉 중앙시장 현지인 맛집"처럼 더 구체적으로 바꾸세요. ({high.length}개)</div>
+                      </div>}
+                      {top3.length===0&&opps.length===0&&easy.length===0&&<div className="report-body" style={{paddingTop:8}}>⚙️ 설정에서 AI 키를 등록하면 더 정확한 리포트를 볼 수 있어요.</div>}
+                    </div>
+                  );
+                })()}
+
+                {/* 뷰 전환 + 결과 */}
+                {posts.length > 0 && (
+                  <>
+                    <div className="sec-hdr">
+                      <div className="view-toggle">
+                        <button className={`vbtn${view==='rank'?' on':''}`} onClick={()=>setView('rank')}>🎯 순위별</button>
+                        <button className={`vbtn${view==='post'?' on':''}`} onClick={()=>setView('post')}>📄 글별</button>
+                      </div>
+                      <span style={{fontSize:11,color:'rgba(244,114,182,.4)'}}>{isDone?`✓ 완료 · ${stats.kwTotal}개 키워드`:'분석 중...'}</span>
+                    </div>
+
+                    {/* ── 순위별 ── */}
+                    {view==='rank' && (() => {
+                      const exposed=rankRows.filter(r=>r.found);
+                      const hidden=rankRows.filter(r=>!r.found&&r.checked);
+                      const checking=rankRows.filter(r=>!r.checked);
+                      const hiddenByPost={};
+                      hidden.forEach(r=>{if(!hiddenByPost[r.post.logNo])hiddenByPost[r.post.logNo]={post:r.post,kws:[]};hiddenByPost[r.post.logNo].kws.push(r.kw);});
+                      return (
+                        <div className="rank-list">
+                          {checking.map(({post,kw},i)=>(
+                            <div key={`ck_${post.logNo}_${kw}`} className="rank-row fu">
+                              <div className="rnum-wrap"><div className="rnum pulse" style={{color:'rgba(244,114,182,.3)',fontSize:18}}>···</div><div className="rnum-sub">확인중</div></div>
+                              <div className="rdiv"/>
+                              <div className="rinfo"><div className="rkw"><span style={{color:'rgba(244,114,182,.3)'}}>#</span><span className="rkw-text">{kw}</span></div><span className="rpost">{post.title}</span></div>
+                            </div>
+                          ))}
+                          {exposed.map(({post,kw,rank},i)=>{
+                            const rs=getRankStyle(rank);
+                            const r=rankResults[`${post.logNo}_${kw}`];
+                            const comp=r?getCompetition(r.total):null;
+                            const src=getSourceBadge(post.keywordSource);
+                            return (
+                              <div key={`ex_${post.logNo}_${kw}`} className="rank-row fu" style={{animationDelay:`${i*.03}s`}}>
+                                <div className="rnum-wrap"><div className="rnum" style={{color:rs.color}}>{rank}</div><div className="rnum-sub">번째 노출</div></div>
+                                <div className="rdiv"/>
+                                <div className="rinfo">
+                                  <div className="rkw">
+                                    <span style={{color:rs.color}}>#</span>
+                                    <span className="rkw-text">{kw}</span>
+                                    {src&&<span className="src-badge" style={{color:src.color,borderColor:src.color+'40',background:src.color+'12'}}>{src.label}</span>}
+                                    {comp&&<span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.short}</span>}
+                                  </div>
+                                  <a href={post.link} target="_blank" rel="noreferrer" className="rpost">{post.title}</a>
+                                </div>
+                                <span className="rbadge" style={{color:rs.color,borderColor:rs.color+'50',background:rs.bg}}>{rs.label}</span>
+                              </div>
+                            );
+                          })}
+                          {Object.values(hiddenByPost).map(({post,kws},i)=>{
+                            const src=getSourceBadge(post.keywordSource);
+                            return (
+                              <div key={`hd_${post.logNo}`} className="rank-row fu" style={{opacity:.65,animationDelay:`${(exposed.length+i)*.03}s`}}>
+                                <div className="rnum-wrap"><div className="rnum" style={{color:'rgba(139,111,139,.6)',fontSize:22}}>—</div><div className="rnum-sub">미노출</div></div>
+                                <div className="rdiv"/>
+                                <div className="rinfo">
+                                  <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:4}}>
+                                    {kws.map(kw=><span key={kw} style={{fontSize:11,fontWeight:700,color:'rgba(244,114,182,.4)',background:'rgba(244,114,182,.05)',border:'1px solid rgba(244,114,182,.12)',borderRadius:99,padding:'2px 8px'}}>#{kw}</span>)}
+                                    {src&&<span className="src-badge" style={{color:src.color,borderColor:src.color+'40',background:src.color+'12'}}>{src.label}</span>}
+                                  </div>
+                                  <a href={post.link} target="_blank" rel="noreferrer" className="rpost">{post.title}</a>
+                                </div>
+                                <span className="rbadge rbadge-hidden">미노출</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+
+                    {/* ── 글별 ── */}
+                    {view==='post' && (
+                      <div className="post-list">
+                        {posts.map((post,pi)=>{
+                          const postRanks=(post.keywords||[]).map(kw=>rankResults[`${post.logNo}_${kw}`]);
+                          const bestRank=postRanks.filter(r=>r?.found).map(r=>r.rank).sort((a,b)=>a-b)[0];
+                          const bestRs=getRankStyle(bestRank||null);
+                          const src=getSourceBadge(post.keywordSource);
+                          return (
+                            <div key={post.logNo} className="post-card fu" style={{animationDelay:`${pi*.03}s`}}>
+                              <div className="post-head">
+                                <span className="post-num">{pi+1}</span>
+                                <div className="post-meta">
+                                  <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap',marginBottom:2}}>
+                                    <a href={post.link} target="_blank" rel="noreferrer" className="post-title">{post.title}</a>
+                                    {src&&<span className="src-badge" style={{color:src.color,borderColor:src.color+'40',background:src.color+'12'}}>{src.label}</span>}
+                                  </div>
+                                  <div className="post-date">{fmtDate(post.pubDate)}</div>
+                                </div>
+                                {bestRank&&<span className="post-best" style={{color:bestRs.color,background:bestRs.bg}}>최고 {bestRank}위</span>}
+                              </div>
+                              <div className="kw-chips">
+                                {(post.keywords||[]).map(kw=>{
+                                  const r=rankResults[`${post.logNo}_${kw}`];
+                                  const rs=r?getRankStyle(r.found?r.rank:null):null;
+                                  const checking=isRunning&&!r;
+                                  const comp=r?getCompetition(r.total):null;
+                                  const inTitle=titleContains(post.title,kw);
+                                  const insight=(r&&!checking)?getInsight(r.found,r.rank,r.total,inTitle):null;
+                                  const iStyle=insight?getInsightStyle(insight.type):null;
+                                  const isOpp=insight?.type==='opportunity';
+                                  return (
+                                    <div key={kw} style={{width:'100%'}}>
+                                      <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
+                                        <span className={`kw-chip${checking?' pulse':''}${isOpp?' opp-glow':''}`} style={{color:rs?rs.color:'rgba(244,114,182,.4)',borderColor:rs?rs.color+'50':'rgba(244,114,182,.15)',background:rs?rs.bg:'rgba(244,114,182,.05)'}}>
+                                          <span>#{kw}</span>
+                                          {rs&&<span style={{fontSize:10,fontWeight:900}}>{r.found?`${r.rank}위`:'미노출'}</span>}
+                                          {checking&&<span style={{fontSize:10}}>···</span>}
+                                        </span>
+                                        {comp&&!checking&&<span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.short}</span>}
+                                      </div>
+                                      {insight&&iStyle&&<div className="insight-box" style={{color:iStyle.color,background:iStyle.bg,borderColor:iStyle.border}}>{insight.msg}</div>}
+                                    </div>
+                                  );
+                                })}
+                                {!post.keywords?.length&&<span style={{fontSize:11,color:'rgba(244,114,182,.3)'}}>키워드 없음</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {!posts.length && !isRunning && (
+                  <div style={{textAlign:'center',padding:'60px 20px',color:'rgba(244,114,182,.3)'}}>
+                    <div style={{fontSize:48,marginBottom:12}}>🌸</div>
+                    <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>블로그 ID를 입력하고 분석을 시작하세요</div>
+                    <div style={{fontSize:12}}>키워드 순위 · SEO 등급 · 개선 리포트</div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ══ 키워드 랭커 탭 ══ */}
+            {tab === 'keyword' && (
+              <>
+                {kwResults.length > 0 && (
+                  <div className="kw-res-list fu">
+                    <div className="kw-res-hdr">
+                      <span>키워드 순위 결과 · {kwResults.length}개</span>
+                      {kwLoading&&<span className="pulse" style={{color:'#f472b6'}}>분석 중...</span>}
+                    </div>
+                    {kwResults.map((r,i)=>{
+                      const rs=getRankStyle(r.found?r.rank:null);
+                      const comp=getCompetition(r.total);
+                      const insight=getInsight(r.found,r.rank,r.total,false);
+                      const iStyle=insight?getInsightStyle(insight.type):null;
+                      return (
+                        <div key={i} className="kw-res-row fu" style={{animationDelay:`${i*.05}s`}}>
+                          <div className="kw-res-top">
+                            <div className="kw-res-left">
+                              <span className="kw-res-idx">{i+1}</span>
+                              <div>
+                                <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                                  <div className="kw-res-name">{r.keyword}</div>
+                                  {comp&&<span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.label}</span>}
+                                  {r.total>0&&<span style={{fontSize:10,color:'rgba(244,114,182,.35)'}}>{r.total.toLocaleString()}개</span>}
+                                </div>
+                                <div className="kw-res-lbl" style={{color:rs.color}}>
+                                  {r.found?`네이버 검색 결과 ${r.rank}번째 노출`:'이 키워드로 검색 시 내 글이 보이지 않음 (100위 밖)'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="kw-res-rank" style={{color:r.found?rs.color:'rgba(139,111,139,.5)'}}>{r.found?`${r.rank}위`:'—'}</div>
+                          </div>
+                          {insight&&iStyle&&<div style={{fontSize:11,fontWeight:600,padding:'7px 10px',borderRadius:8,border:`1px solid ${iStyle.border}`,background:iStyle.bg,color:iStyle.color}}>{insight.msg}</div>}
+                        </div>
+                      );
+                    })}
+                    {!kwLoading&&(
+                      <div className="kw-stats">
+                        <span>🥇 TOP3 {kwResults.filter(r=>r.found&&r.rank<=3).length}개</span>
+                        <span>🏆 TOP10 {kwResults.filter(r=>r.found&&r.rank<=10).length}개</span>
+                        <span>✅ 노출 {kwResults.filter(r=>r.found).length}개</span>
+                        <span>❌ 미노출 {kwResults.filter(r=>!r.found).length}개</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!kwResults.length&&!kwLoading&&(
+                  <div style={{textAlign:'center',padding:'60px 20px',color:'rgba(244,114,182,.3)'}}>
+                    <div style={{fontSize:48,marginBottom:12}}>🔍</div>
+                    <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>블로그 ID와 키워드를 입력하세요</div>
+                    <div style={{fontSize:12}}>네이버 검색에서 몇 번째에 노출되는지 확인</div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 설정 드로어 ─── */}
+      {showSettings && (() => {
+        const activeAI = getActiveAI();
+        const AI_LIST = [
+          {key:'groq',label:'Groq (Llama 3)',emoji:'⚡',pc:'free',pl:'무료',ph:'gsk_xxxxxxxxxxxxxxxx',url:'https://console.groq.com/keys',desc:'Meta Llama 3 기반 · 가장 빠름 · 완전 무료'},
+          {key:'gemini',label:'Google Gemini',emoji:'✨',pc:'partial',pl:'일부 무료 / 유료',ph:'AIzaSyxxxxxxxxxxxxxxx',url:'https://aistudio.google.com/app/apikey',desc:'Gemini 2.0 Flash · 1,500회/일 무료'},
+          {key:'openai',label:'OpenAI GPT',emoji:'🤖',pc:'paid',pl:'유료',ph:'sk-xxxxxxxxxxxxxxxx',url:'https://platform.openai.com/api-keys',desc:'GPT-4o Mini · 고품질 · 사용량 과금'},
+        ];
+        return (
+          <>
+            <div className="overlay" onClick={()=>setShowSettings(false)}/>
+            <div className="drawer">
+              <div className="drawer-handle"/>
+              <div className="drawer-head">
+                <div className="drawer-title">🤖 AI 키워드 분석 설정</div>
+                <button className="drawer-close" onClick={()=>setShowSettings(false)}>✕</button>
+              </div>
+              <div className="drawer-body">
+                <div className="dev-warn">⚠️ <strong>기기별 저장 안내</strong><br/>API 키는 현재 기기 브라우저에만 저장됩니다.<br/><strong>PC ↔ 모바일 ↔ 태블릿 변경 시</strong> 각 기기에서 다시 입력해야 합니다.</div>
+                {activeAI
+                  ? <div className="ai-ok-info">✅ 사용 중: <strong>{AI_LIST.find(a=>a.key===activeAI.provider)?.label}</strong></div>
+                  : <div className="ai-no-info">❌ AI 미설정 — 제목 파싱으로만 키워드 추출됩니다</div>
+                }
+                {AI_LIST.map(ai=>{
+                  const isSel=selectedAI===ai.key;
+                  const hasKey=!!aiKeys[ai.key].trim();
+                  return (
+                    <div key={ai.key} className={`ai-card${isSel?' sel':''}`}>
+                      <div className="ai-card-top">
+                        <div className="ai-name"><span>{ai.emoji}</span><span>{ai.label}</span>{isSel&&<span className="badge-sel">사용 중</span>}</div>
+                        <span className={`badge-${ai.pc}`}>{ai.pl}</span>
+                      </div>
+                      <div style={{fontSize:10,color:'rgba(244,114,182,.4)',marginBottom:10}}>{ai.desc}</div>
+                      <div className="ai-inp-col">
+                        <div className="ai-inp-row">
+                          <input className="ai-inp" type="password" placeholder={ai.ph} value={aiKeys[ai.key]} onChange={e=>updateAiKey(ai.key,e.target.value)}/>
+                          <button className="issue-btn" onClick={()=>window.open(ai.url,'_blank')}>🔑 발급받기</button>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
+                          <span style={{fontSize:10,color:hasKey?'#10b981':'rgba(244,114,182,.35)',fontWeight:600}}>{hasKey?'✓ 키 저장됨':'키 미입력'}</span>
+                          <button className={`use-btn${isSel?' sel':''}`} style={{width:'auto',padding:'0 16px'}} onClick={()=>updateSelectedAI(isSel?'':ai.key)}>
+                            {isSel?'✓ 사용 중':'이 AI 사용'}
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
-
-                  <div style={{fontSize:11,color:'var(--text-muted)',textAlign:'center',lineHeight:1.8}}>
-                    AI 미설정 시 글의 해시태그 또는 제목 파싱으로 키워드 추출
-                  </div>
-                </div>
-              </div>
-            </>
-          );
-        })()}
-
-        {/* ─── CONTENT ─── */}
-        <div className="rc-content">
-
-          {/* ═══ 글 순위 분석 ═══ */}
-          {tab === 'posts' && (
-            <>
-              {/* 입력 */}
-              {!posts.length && !isRunning && (
-                <div className="input-card card fade-up">
-                  <div className="input-label">네이버 블로그 ID</div>
-                  <div className="input-row">
-                    <div className="inp-wrap">
-                      <span className="inp-prefix">blog.naver.com/</span>
-                      <input
-                        ref={inputRef}
-                        className="inp inp-pl"
-                        placeholder="myblogid"
-                        value={blogId}
-                        onChange={e => setBlogId(e.target.value)}
-                        onKeyDown={e => e.key==='Enter' && handleStart()}
-                      />
                     </div>
-                    <button className="btn-primary" onClick={handleStart} disabled={isRunning}>
-                      분석 시작 →
-                    </button>
-                  </div>
-                  {error && <div className="err-box">⚠️ {error}</div>}
-                  <div className="tip-box" style={{ marginTop:14 }}>
-                    💡 블로그 ID만 입력하면 자동으로 키워드를 찾아 순위를 체크합니다<br/>
-                    <span style={{display:'flex',gap:14,marginTop:4,flexWrap:'wrap'}}>
-                      <span><span className="src-dot" style={{background:'#10b981'}}/>태그 — 글의 해시태그 사용</span>
-                      <span><span className="src-dot" style={{background:'#a78bfa'}}/>AI — AI가 제목 분석 (⚙️ 설정 필요)</span>
-                      <span><span className="src-dot" style={{background:'#94a3b8'}}/>제목 — 제목 단어 파싱</span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* 진행 중 */}
-              {isRunning && (
-                <div className="progress-card card fade-up">
-                  <div className="progress-row">
-                    <div className="progress-label">
-                      {phase==='fetching'
-                        ? '📥 글 목록 + 키워드 수집 중...'
-                        : `🔍 "${progress.label}" 순위 확인 중 (${progress.cur}/${progress.total})`}
-                    </div>
-                    <div className="progress-right">
-                      {phase==='ranking' && <span className="progress-pct">{pct}%</span>}
-                      <button className="stop-btn" onClick={() => abortRef.current=true}>중단</button>
-                    </div>
-                  </div>
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{width: phase==='fetching'?'10%':`${pct}%`}} />
-                  </div>
-                  {posts.length > 0 && (
-                    <div style={{marginTop:10,fontSize:12,color:'var(--text-muted)'}}>
-                      {posts.length}개 글 수집 완료 · 순위 분석 중
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 결과 */}
-              {posts.length > 0 && (
-                <>
-                  {/* 통계 */}
-                  <div className="stats-grid fade-up">
-                    {[
-                      { icon:'📄', val:stats.total,   label:'전체 글',  color:'var(--text)' },
-                      { icon:'🥇', val:stats.top3,    label:'TOP 3',    color:'#ec4899' },
-                      { icon:'🏆', val:stats.top10,   label:'TOP 10',   color:'#a855f7' },
-                      { icon:'✅', val:stats.exposed, label:'노출',     color:'#10b981' },
-                    ].map(s => (
-                      <div key={s.label} className="stat-card card">
-                        <div className="stat-icon">{s.icon}</div>
-                        <div className="stat-val" style={{color:s.color}}>{s.val}</div>
-                        <div className="stat-label">{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ── 스마트 리포트 (분석 완료 시) ── */}
-                  {isDone && (() => {
-                    const allRows = posts.flatMap(p =>
-                      (p.keywords||[]).map(kw => {
-                        const r = rankResults[`${p.logNo}_${kw}`];
-                        return { post: p, kw, rank: r?.rank, found: r?.found ?? false, total: r?.total ?? 0 };
-                      })
-                    );
-                    const seo         = calcSEOScore(allRows);
-                    const top3List    = allRows.filter(r => r.found && r.rank <= 3).sort((a,b)=>a.rank-b.rank);
-                    const top10List   = allRows.filter(r => r.found && r.rank > 3 && r.rank <= 10).sort((a,b)=>a.rank-b.rank);
-                    const opportunities = allRows.filter(r => !r.found && r.total > 0 && r.total < 3000 && !titleContains(r.post.title, r.kw));
-                    const easyWins    = allRows.filter(r => !r.found && r.total > 0 && r.total < 3000 && titleContains(r.post.title, r.kw));
-                    const midRange    = allRows.filter(r => !r.found && r.total >= 3000 && r.total < 150000);
-                    const highComp    = allRows.filter(r => !r.found && r.total >= 150000);
-                    const expRate     = allRows.length ? Math.round(allRows.filter(r=>r.found).length / allRows.length * 100) : 0;
-
-                    return (
-                      <div className="report-card fade-up">
-                        {/* 헤더 + 점수 */}
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:18}}>
-                          <div className="report-title" style={{marginBottom:0}}>📋 블로그 SEO 분석 리포트</div>
-                          <div style={{display:'flex',alignItems:'center',gap:10}}>
-                            <div style={{textAlign:'center'}}>
-                              <div style={{fontSize:32,fontWeight:900,color:seo.color,lineHeight:1}}>{seo.grade}</div>
-                              <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:700,marginTop:2}}>SEO 등급</div>
-                            </div>
-                            <div style={{width:1,height:40,background:'var(--border)'}}/>
-                            <div>
-                              <div style={{fontSize:20,fontWeight:900,color:seo.color}}>{seo.score}<span style={{fontSize:12,color:'var(--text-muted)'}}>/100</span></div>
-                              <div style={{fontSize:11,color:'var(--text-sub)',fontWeight:600}}>{seo.label}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 노출률 바 */}
-                        <div style={{marginBottom:18}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text-muted)',fontWeight:700,marginBottom:5}}>
-                            <span>키워드 노출률</span><span style={{color:seo.color}}>{expRate}%</span>
-                          </div>
-                          <div style={{height:6,background:'var(--surface2)',borderRadius:99,overflow:'hidden'}}>
-                            <div style={{width:`${expRate}%`,height:'100%',background:`linear-gradient(90deg,${seo.color},#ec4899)`,borderRadius:99,transition:'width .6s ease'}}/>
-                          </div>
-                        </div>
-
-                        {/* 상위노출 중 */}
-                        {top3List.length > 0 && (
-                          <div className="report-section">
-                            <div className="report-section-title" style={{color:'#f59e0b'}}>🥇 TOP 3 노출 키워드 — 지금 잘 되고 있어요</div>
-                            <div className="report-section-body" style={{marginBottom:10}}>아래 키워드는 네이버 검색 3위 안에 노출 중이에요. 글 내용을 최신 상태로 유지하고, 관련 글끼리 내부 링크를 연결해 순위를 지켜나가세요.</div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                              {top3List.slice(0,6).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(245,158,11,.12)',color:'#f59e0b',border:'1px solid rgba(245,158,11,.3)'}}>#{r.kw} · {r.rank}위</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {top10List.length > 0 && (
-                          <div className="report-section">
-                            <div className="report-section-title" style={{color:'#a855f7'}}>🏆 TOP 4~10위 노출 키워드 — 첫 페이지 진입 완료</div>
-                            <div className="report-section-body" style={{marginBottom:10}}>검색 첫 페이지에 노출 중이에요. 글 조회수와 체류 시간을 높이면 3위 안으로 올라갈 수 있어요.</div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                              {top10List.slice(0,6).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(168,85,247,.12)',color:'#a855f7',border:'1px solid rgba(168,85,247,.3)'}}>#{r.kw} · {r.rank}위</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 기회 키워드 */}
-                        {opportunities.length > 0 && (
-                          <div className="report-section">
-                            <div className="report-section-title" style={{color:'#10b981'}}>🎯 지금 당장 할 수 있는 것 — 제목만 바꿔도 올라가요</div>
-                            <div className="report-section-body" style={{marginBottom:10}}>
-                              경쟁자가 <strong>3,000명 미만</strong>인데 아직 글 제목에 이 키워드가 없어요.<br/>
-                              👉 해당 글 제목 맨 앞에 키워드를 추가하는 것만으로 상위 노출 가능성이 크게 높아집니다.
-                            </div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                              {opportunities.slice(0,8).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(16,185,129,.1)',color:'#10b981',border:'1px solid rgba(16,185,129,.3)'}}>#{r.kw}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {easyWins.length > 0 && (
-                          <div className="report-section">
-                            <div className="report-section-title" style={{color:'#3b82f6'}}>📝 본문 보강이 필요한 키워드 — 제목엔 있는데 미노출</div>
-                            <div className="report-section-body" style={{marginBottom:10}}>
-                              제목에는 키워드가 있지만 아직 검색에 안 잡혀요.<br/>
-                              👉 본문에서 이 키워드를 <strong>2~3번 자연스럽게</strong> 반복하고, 글 길이를 1,500자 이상으로 늘려보세요.
-                            </div>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                              {easyWins.slice(0,8).map((r,i) => (
-                                <span key={i} style={{fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:99,background:'rgba(59,130,246,.1)',color:'#3b82f6',border:'1px solid rgba(59,130,246,.3)'}}>#{r.kw}</span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {midRange.length > 0 && (
-                          <div className="report-section">
-                            <div className="report-section-title" style={{color:'#f59e0b'}}>🔥 중간 경쟁 키워드 — 전략적으로 접근하세요</div>
-                            <div className="report-section-body">
-                              경쟁자가 3,000~15만 명 사이인 키워드예요.<br/>
-                              👉 단순 나열보다 <strong>전문적인 내용, 실제 경험, 사진</strong>으로 차별화하면 이길 수 있어요. 총 {midRange.length}개
-                            </div>
-                          </div>
-                        )}
-
-                        {highComp.length > 0 && (
-                          <div className="report-section">
-                            <div className="report-section-title" style={{color:'#f87171'}}>⚠️ 경쟁 포화 키워드 — 키워드 교체를 권장해요</div>
-                            <div className="report-section-body">
-                              검색 결과가 15만 개 이상으로 대형 블로그들과 경쟁해야 해요.<br/>
-                              👉 "맛집" 대신 "강릉 중앙시장 현지인 맛집 추천"처럼 <strong>더 구체적인 롱테일 키워드</strong>로 바꾸세요. 총 {highComp.length}개
-                            </div>
-                          </div>
-                        )}
-
-                        {top3List.length === 0 && opportunities.length === 0 && easyWins.length === 0 && (
-                          <div className="report-section-body" style={{color:'var(--text-muted)',paddingTop:8}}>
-                            ⚙️ 설정에서 AI 키를 등록하면 더 정확한 키워드로 분석할 수 있어요.
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  <div className="results-header">
-                    <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-                      <div className="view-toggle">
-                        <button className={`view-btn${view==='rank'?' active':''}`} onClick={()=>setView('rank')}>🎯 순위별</button>
-                        <button className={`view-btn${view==='post'?' active':''}`} onClick={()=>setView('post')}>📄 글별</button>
-                      </div>
-                      <span style={{fontSize:12,color:'var(--text-muted)'}}>
-                        {isDone ? `✓ 완료 · ${stats.kwTotal}개 키워드 분석` : '분석 중...'}
-                      </span>
-                    </div>
-                    <div style={{display:'flex',gap:8}}>
-                      <button className="btn-ghost" onClick={()=>{setPosts([]);setRankResults({});setPhase('idle');setBlogId('');setError('');}}>
-                        초기화
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* ── 순위별 뷰 ── */}
-                  {view === 'rank' && (
-                    <div className="rank-table">
-                      {rankRows.length === 0 && (
-                        <div style={{textAlign:'center',padding:'40px',color:'var(--text-muted)',fontSize:14}}>
-                          순위 분석 중...
-                        </div>
-                      )}
-                      {/* 노출된 것 먼저, 미노출은 글 단위로 묶어서 */}
-                      {(() => {
-                        const exposed = rankRows.filter(r => r.found);
-                        const hidden  = rankRows.filter(r => !r.found && r.checked);
-                        const checking = rankRows.filter(r => !r.checked);
-
-                        // 미노출은 같은 글끼리 묶기
-                        const hiddenByPost = {};
-                        hidden.forEach(r => {
-                          if (!hiddenByPost[r.post.logNo]) hiddenByPost[r.post.logNo] = { post: r.post, kws: [] };
-                          hiddenByPost[r.post.logNo].kws.push(r.kw);
-                        });
-
-                        return (
-                          <>
-                            {/* 확인 중 */}
-                            {checking.map(({ post, kw }, i) => (
-                              <div key={`ck_${post.logNo}_${kw}`} className="rank-row fade-up">
-                                <div className="rank-num-wrap">
-                                  <div className="rank-num pulse" style={{color:'var(--text-muted)',fontSize:20}}>···</div>
-                                  <div className="rank-num-label">확인중</div>
-                                </div>
-                                <div className="rank-divider" />
-                                <div className="rank-info">
-                                  <div className="rank-kw"><span style={{color:'var(--text-muted)'}}>#</span><span className="rank-kw-text">{kw}</span></div>
-                                  <div className="rank-post">{post.title}</div>
-                                </div>
-                              </div>
-                            ))}
-
-                            {/* 노출 */}
-                            {exposed.map(({ post, kw, rank }, i) => {
-                              const rs = getRankStyle(rank);
-                              const srcInfo = getSourceBadge(post.keywordSource);
-                              const r = rankResults[`${post.logNo}_${kw}`];
-                              const comp = r ? getCompetition(r.total) : null;
-                              const inTitle = titleContains(post.title, kw);
-                              return (
-                                <div key={`ex_${post.logNo}_${kw}`} className="rank-row fade-up" style={{animationDelay:`${i*0.03}s`}}>
-                                  <div className="rank-num-wrap">
-                                    <div className="rank-num" style={{color:rs.color}}>{rank}</div>
-                                    <div className="rank-num-label">번째 노출</div>
-                                  </div>
-                                  <div className="rank-divider" />
-                                  <div className="rank-info">
-                                    <div className="rank-kw">
-                                      <span style={{color:rs.color,flexShrink:0}}>#</span>
-                                      <span className="rank-kw-text">{kw}</span>
-                                      {srcInfo && <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>{srcInfo.label}</span>}
-                                      {comp && <span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.short}</span>}
-                                    </div>
-                                    <a href={post.link} target="_blank" rel="noreferrer" className="rank-post" style={{color:'var(--text-sub)'}}>{post.title}</a>
-                                  </div>
-                                  <span className="rank-badge exposed" style={{color:rs.color,borderColor:rs.color+'60',background:rs.bg}}>{rs.label}</span>
-                                </div>
-                              );
-                            })}
-
-                            {/* 미노출 - 글 단위 묶음 */}
-                            {Object.values(hiddenByPost).map(({ post, kws }, i) => {
-                              const srcInfo = getSourceBadge(post.keywordSource);
-                              return (
-                                <div key={`hd_${post.logNo}`} className="rank-row fade-up" style={{animationDelay:`${(exposed.length+i)*0.03}s`,opacity:.7}}>
-                                  <div className="rank-num-wrap">
-                                    <div className="rank-num" style={{color:'var(--rank-none)',fontSize:22}}>—</div>
-                                    <div className="rank-num-label">미노출</div>
-                                  </div>
-                                  <div className="rank-divider" />
-                                  <div className="rank-info">
-                                    <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:5}}>
-                                      {kws.map(kw => (
-                                        <span key={kw} style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:99,padding:'2px 9px'}}>#{kw}</span>
-                                      ))}
-                                      {srcInfo && <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>{srcInfo.label}</span>}
-                                    </div>
-                                    <a href={post.link} target="_blank" rel="noreferrer" className="rank-post" style={{color:'var(--text-muted)'}}>{post.title}</a>
-                                  </div>
-                                  <span className="rank-badge hidden">미노출</span>
-                                </div>
-                              );
-                            })}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-
-                  {/* ── 글별 뷰 ── */}
-                  {view === 'post' && (
-                    <div className="post-list">
-                      {posts.map((post, pi) => {
-                        const postRanks = (post.keywords||[]).map(kw => rankResults[`${post.logNo}_${kw}`]);
-                        const bestRank  = postRanks.filter(r=>r?.found).map(r=>r.rank).sort((a,b)=>a-b)[0];
-                        const srcInfo   = getSourceBadge(post.keywordSource);
-                        const bestRs    = getRankStyle(bestRank||null);
-
-                        return (
-                          <div key={post.logNo} className="post-card fade-up" style={{animationDelay:`${pi*0.03}s`}}>
-                            <div className="post-head">
-                              <span className="post-num">{pi+1}</span>
-                              <div className="post-meta">
-                                <div className="post-title-row">
-                                  <a href={post.link} target="_blank" rel="noreferrer" className="post-title">
-                                    {post.title}
-                                  </a>
-                                  {srcInfo && (
-                                    <span className="src-badge" style={{color:srcInfo.color,borderColor:srcInfo.color+'40',background:srcInfo.color+'12'}}>
-                                      {srcInfo.label}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="post-date">{fmtDate(post.pubDate)}</div>
-                              </div>
-                              {bestRank && (
-                                <span className="post-best" style={{color:bestRs.color,background:bestRs.bg}}>
-                                  최고 {bestRank}위
-                                </span>
-                              )}
-                            </div>
-                            <div className="kw-chips">
-                              {(post.keywords||[]).map(kw => {
-                                const r  = rankResults[`${post.logNo}_${kw}`];
-                                const rs = r ? getRankStyle(r.found ? r.rank : null) : null;
-                                const checking = isRunning && !r;
-                                const comp = r ? getCompetition(r.total) : null;
-                                const inTitle = titleContains(post.title, kw);
-                                const insight = (r && !checking) ? getInsight(r.found, r.rank, r.total, inTitle) : null;
-                                const insightStyle = insight ? getInsightStyle(insight.type) : null;
-                                const isOpportunity = insight?.type === 'opportunity';
-
-                                return (
-                                  <div key={kw} style={{width:'100%'}}>
-                                    <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                                      {/* 키워드 칩 */}
-                                      <span className={`kw-chip${checking?' pulse':''}${isOpportunity?' opportunity-row':''}`}
-                                        style={{
-                                          color:       rs ? rs.color : 'var(--text-muted)',
-                                          borderColor: rs ? rs.color+'50' : 'var(--border)',
-                                          background:  rs ? rs.bg : 'var(--surface2)',
-                                        }}>
-                                        <span>#{kw}</span>
-                                        {rs && <span className="kw-chip-rank">{r.found ? `${r.rank}위` : '미노출'}</span>}
-                                        {checking && <span style={{fontSize:10}}>···</span>}
-                                      </span>
-                                      {/* 경쟁도 */}
-                                      {comp && !checking && (
-                                        <span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>
-                                          {comp.short}
-                                        </span>
-                                      )}
-                                      {/* 제목 포함 여부 */}
-                                      {r && !checking && (
-                                        <span className={inTitle ? 'title-match-yes' : 'title-match-no'}>
-                                          {inTitle ? '제목 ✓' : '제목 없음'}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {/* 인사이트 */}
-                                    {insight && insightStyle && (
-                                      <div className="insight-box" style={{color:insightStyle.color,background:insightStyle.bg,borderColor:insightStyle.border}}>
-                                        {insight.msg}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {!post.keywords?.length && (
-                                <span style={{fontSize:12,color:'var(--text-muted)'}}>키워드 없음</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-
-          {/* ═══ 키워드 랭커 ═══ */}
-          {tab === 'keyword' && (
-            <>
-              <div className="input-card fade-up">
-                <div className="kw-grid">
-                  <div>
-                    <div className="input-label">블로그 ID</div>
-                    <input className="inp inp-sm" placeholder="myblogid"
-                      value={kwBlogId} onChange={e=>setKwBlogId(e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="input-label">키워드 <span style={{color:'var(--text-muted)',fontWeight:400,textTransform:'none',fontSize:11}}>줄바꿈으로 여러 개</span></div>
-                    <textarea className="inp inp-ta" placeholder={"강남 맛집\n부산 카페\n네이버 블로그 체험단"}
-                      value={kwInput} onChange={e=>setKwInput(e.target.value)} />
-                  </div>
-                </div>
-                <button className="btn-primary" style={{width:'100%',height:44}} onClick={handleKwCheck}
-                  disabled={kwLoading || !kwBlogId || !kwInput}>
-                  {kwLoading ? '순위 확인 중...' : '🔍 순위 확인'}
-                </button>
-              </div>
-
-              {kwResults.length > 0 && (
-                <div className="kw-result-list fade-up">
-                  <div className="kw-result-header">
-                    <span>키워드 순위 결과 · {kwResults.length}개</span>
-                    {kwLoading && <span className="pulse" style={{color:'var(--accent)'}}>분석 중...</span>}
-                  </div>
-                  {kwResults.map((r, i) => {
-                    const rs = getRankStyle(r.found ? r.rank : null);
-                    const comp = getCompetition(r.total);
-                    const insight = getInsight(r.found, r.rank, r.total, false);
-                    const insightStyle = insight ? getInsightStyle(insight.type) : null;
-                    return (
-                      <div key={i} className="kw-result-row fade-up" style={{animationDelay:`${i*0.05}s`,flexDirection:'column',alignItems:'stretch',gap:8}}>
-                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                          <div className="kw-result-left">
-                            <span className="kw-result-idx">{i+1}</span>
-                            <div>
-                              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                                <div className="kw-result-name">{r.keyword}</div>
-                                {comp && <span className="comp-badge" style={{color:comp.color,borderColor:comp.color+'40',background:comp.bg}}>{comp.label}</span>}
-                                {r.total > 0 && <span style={{fontSize:11,color:'var(--text-muted)'}}>{r.total.toLocaleString()}개 문서</span>}
-                              </div>
-                              <div className="kw-result-label" style={{color:rs.color,marginTop:2}}>
-                                {r.found ? `네이버 검색 결과 ${r.rank}번째 노출` : '이 키워드로 검색 시 내 글이 보이지 않음 (100위 밖)'}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="kw-result-rank" style={{color: r.found ? rs.color : 'var(--rank-none)'}}>
-                            {r.found ? `${r.rank}위` : '—'}
-                          </div>
-                        </div>
-                        {insight && insightStyle && (
-                          <div style={{fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:9,border:`1px solid ${insightStyle.border}`,background:insightStyle.bg,color:insightStyle.color,marginLeft:32}}>
-                            {insight.msg}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {!kwLoading && (
-                    <div className="kw-stats">
-                      <span>🥇 TOP3 {kwResults.filter(r=>r.found&&r.rank<=3).length}개</span>
-                      <span>🏆 TOP10 {kwResults.filter(r=>r.found&&r.rank<=10).length}개</span>
-                      <span>✅ 노출 {kwResults.filter(r=>r.found).length}개</span>
-                      <span>❌ 미노출 {kwResults.filter(r=>!r.found).length}개</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="tip-box" style={{marginTop:16}}>
-                💡 <strong>활용 팁</strong><br/>
-                1위~3위 → 글 제목과 태그에 해당 키워드가 잘 녹아있는지 확인<br/>
-                미노출 → 경쟁이 낮은 롱테일 키워드로 변경하거나 글 품질 개선 필요
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ─── 떠다니는 가이드 버튼 ─── */}
-        <button
-          className="guide-float-btn"
-          onClick={() => setShowGuide(g => !g)}
-          title="용어 설명서"
-        >
-          <span className="guide-float-icon">📖</span>
-          <span className="guide-float-label">용어 설명</span>
-        </button>
-
-        {/* ─── 가이드 모달 ─── */}
-        {showGuide && (
-          <>
-            <div className="settings-overlay" onClick={() => setShowGuide(false)} />
-            <div className="guide-modal fade-up">
-              <div className="guide-modal-handle"/>
-              <div className="settings-head">
-                <div className="settings-title">📖 용어 & 지표 설명서</div>
-                <button className="settings-close" onClick={() => setShowGuide(false)}>✕</button>
-              </div>
-              <div style={{padding:'0 24px 24px',overflowY:'auto',flex:1}}>
-
-                {/* 순위 */}
-                <div className="guide-section">
-                  <div className="guide-section-title">🎯 순위란?</div>
-                  <p className="guide-p">네이버 검색창에 키워드를 입력했을 때 내 블로그 글이 몇 번째에 나타나는지를 의미해요. 1위가 가장 위, 100위 밖이면 미노출입니다.</p>
-                  <div className="guide-examples">
-                    {[
-                      {color:'#f59e0b',bg:'rgba(245,158,11,.15)',label:'1위 🥇',desc:'검색 최상단 · 클릭율 최고'},
-                      {color:'#ec4899',bg:'rgba(236,72,153,.15)',label:'2~3위',desc:'상위권 · 충분히 좋음'},
-                      {color:'#a855f7',bg:'rgba(168,85,247,.15)',label:'4~10위',desc:'첫 페이지 · 노출 양호'},
-                      {color:'#6366f1',bg:'rgba(99,102,241,.15)',label:'11~30위',desc:'2페이지권 · 개선 여지'},
-                      {color:'#64748b',bg:'rgba(100,116,139,.12)',label:'미노출',desc:'이 키워드로 검색해도 내 글이 보이지 않음 (100위 밖)'},
-                    ].map(r => (
-                      <div key={r.label} className="guide-example-row">
-                        <span style={{fontSize:12,fontWeight:800,padding:'4px 12px',borderRadius:99,color:r.color,background:r.bg,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:70,textAlign:'center'}}>{r.label}</span>
-                        <span style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 경쟁도 */}
-                <div className="guide-section">
-                  <div className="guide-section-title">⚔️ 경쟁도란?</div>
-                  <p className="guide-p">해당 키워드로 네이버에서 검색했을 때 등록된 블로그 글이 몇 개인지를 보여줘요. 적을수록 내 글이 상위에 올라가기 쉽습니다.</p>
-                  <div className="guide-examples">
-                    {[
-                      {color:'#10b981',bg:'rgba(16,185,129,.12)',label:'낮음',desc:'3,000개 미만 · 지금 바로 도전하세요!'},
-                      {color:'#f59e0b',bg:'rgba(245,158,11,.12)',label:'보통',desc:'3,000~30,000개 · 글 품질로 승부 가능'},
-                      {color:'#f97316',bg:'rgba(249,115,22,.12)',label:'높음',desc:'3만~15만개 · 전략적 접근 필요'},
-                      {color:'#ef4444',bg:'rgba(239,68,68,.12)',label:'매우 높음',desc:'15만개 이상 · 더 구체적인 키워드 추천'},
-                    ].map(r => (
-                      <div key={r.label} className="guide-example-row">
-                        <span style={{fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,color:r.color,background:r.bg,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:70,textAlign:'center'}}>{r.label}</span>
-                        <span style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 키워드 출처 */}
-                <div className="guide-section">
-                  <div className="guide-section-title">🏷️ 키워드 출처란?</div>
-                  <p className="guide-p">이 도구가 어떤 방법으로 키워드를 찾아냈는지를 표시해요.</p>
-                  <div className="guide-examples">
-                    {[
-                      {color:'#10b981',label:'태그',desc:'블로그 글에 직접 등록한 해시태그 · 가장 정확'},
-                      {color:'#a78bfa',label:'AI',desc:'AI가 글 제목/내용을 분석해 추출 · 설정에서 키 등록 필요'},
-                      {color:'#94a3b8',label:'제목',desc:'글 제목 단어 조합으로 파싱 · 정확도 보통'},
-                    ].map(r => (
-                      <div key={r.label} className="guide-example-row">
-                        <span style={{fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:99,color:r.color,background:`${r.color}18`,border:`1px solid ${r.color}40`,flexShrink:0,minWidth:50,textAlign:'center'}}>{r.label}</span>
-                        <span style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 인사이트 */}
-                <div className="guide-section">
-                  <div className="guide-section-title">💡 인사이트 메시지란?</div>
-                  <p className="guide-p">각 키워드 상황에 맞게 자동으로 조언을 드려요. 아래 색상으로 구분됩니다.</p>
-                  <div className="guide-examples">
-                    {[
-                      {color:'#10b981',border:'rgba(16,185,129,.3)',bg:'rgba(16,185,129,.1)',label:'🎯 기회!',desc:'경쟁 적고 제목에 키워드 없음 → 제목만 수정해도 상위 노출 가능'},
-                      {color:'#a855f7',border:'rgba(168,85,247,.3)',bg:'rgba(168,85,247,.1)',label:'📝 보강 필요',desc:'제목엔 있는데 미노출 → 본문에 키워드 2~3회 더 자연스럽게 추가'},
-                      {color:'#ef4444',border:'rgba(239,68,68,.25)',bg:'rgba(239,68,68,.08)',label:'⚠️ 교체 권장',desc:'경쟁 포화 → 더 좁고 구체적인 롱테일 키워드로 바꾸세요'},
-                      {color:'#f59e0b',border:'rgba(245,158,11,.3)',bg:'rgba(245,158,11,.1)',label:'💪 유지',desc:'치열한 경쟁에서 상위권 중 → 글 품질 계속 유지하세요'},
-                    ].map(r => (
-                      <div key={r.label} style={{padding:'10px 12px',borderRadius:10,border:`1px solid ${r.border}`,background:r.bg,marginBottom:8}}>
-                        <div style={{fontSize:12,fontWeight:800,color:r.color,marginBottom:3}}>{r.label}</div>
-                        <div style={{fontSize:12,color:'var(--text-sub)'}}>{r.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 분석 리포트 */}
-                <div className="guide-section">
-                  <div className="guide-section-title">📋 분석 리포트란?</div>
-                  <p className="guide-p">분석이 끝나면 전체 결과를 요약해서 지금 당장 해야 할 것을 알려드려요. 기회 키워드, 개선 필요 글, 포기해야 할 키워드를 한눈에 볼 수 있어요.</p>
-                </div>
-
-                {/* TOP3/TOP10 */}
-                <div className="guide-section" style={{borderBottom:'none',paddingBottom:0}}>
-                  <div className="guide-section-title">🏆 TOP3 · TOP10이란?</div>
-                  <p className="guide-p">분석한 전체 키워드 중에서 네이버 검색 3위 안, 10위 안에 들어온 키워드의 개수예요. 숫자가 높을수록 블로그 SEO 상태가 좋다는 의미입니다.</p>
-                </div>
-
+                  );
+                })}
+                <div style={{fontSize:10,color:'rgba(244,114,182,.35)',textAlign:'center',lineHeight:1.8}}>AI 미설정 시 해시태그 또는 제목 파싱으로 키워드 추출</div>
               </div>
             </div>
           </>
-        )}
-      </div>
+        );
+      })()}
+
+      {/* ─── 가이드 버튼 ─── */}
+      <button className="float-btn" onClick={()=>setShowGuide(g=>!g)}>
+        <span>📖</span><span>용어 설명</span>
+      </button>
+
+      {/* ─── 가이드 모달 ─── */}
+      {showGuide && (
+        <>
+          <div className="overlay" onClick={()=>setShowGuide(false)}/>
+          <div className="guide-modal fu">
+            <div className="modal-handle"/>
+            <div className="modal-head">
+              <div className="modal-title">📖 용어 & 지표 설명서</div>
+              <button className="modal-close" onClick={()=>setShowGuide(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="guide-sec">
+                <div className="guide-sec-title">🎯 순위란?</div>
+                <div className="guide-p">네이버 검색창에 키워드를 입력했을 때 내 블로그 글이 몇 번째에 나타나는지예요. 1위가 가장 위, 100위 밖이면 미노출입니다.</div>
+                <div className="guide-rows">
+                  {[{color:'#fbbf24',bg:'rgba(251,191,36,.12)',label:'1위 🥇',desc:'검색 최상단 · 클릭율 최고'},{color:'#f472b6',bg:'rgba(244,114,182,.12)',label:'2~3위',desc:'상위권 · 충분히 좋음'},{color:'#c026d3',bg:'rgba(192,38,211,.12)',label:'4~10위',desc:'첫 페이지 · 노출 양호'},{color:'rgba(139,111,139,.7)',bg:'rgba(139,111,139,.1)',label:'미노출',desc:'이 키워드로 검색 시 내 글이 보이지 않음 (100위 밖)'}].map(r=>(
+                    <div key={r.label} className="guide-row">
+                      <span style={{fontSize:11,fontWeight:800,padding:'4px 10px',borderRadius:99,color:r.color,background:r.bg,flexShrink:0,minWidth:64,textAlign:'center'}}>{r.label}</span>
+                      <span style={{fontSize:11,color:'rgba(249,168,212,.6)'}}>{r.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="guide-sec">
+                <div className="guide-sec-title">⚔️ 경쟁도란?</div>
+                <div className="guide-p">해당 키워드로 네이버에 등록된 블로그 글이 몇 개인지예요. 적을수록 상위 노출이 쉽습니다.</div>
+                <div className="guide-rows">
+                  {[{color:'#10b981',bg:'rgba(16,185,129,.1)',label:'낮음',desc:'3,000개 미만 · 지금 바로 도전!'},{color:'#f59e0b',bg:'rgba(245,158,11,.1)',label:'보통',desc:'3천~3만개 · 글 품질로 승부'},{color:'#f97316',bg:'rgba(249,115,22,.1)',label:'높음',desc:'3만~15만개 · 전략 필요'},{color:'#ef4444',bg:'rgba(239,68,68,.1)',label:'매우 높음',desc:'15만개 이상 · 롱테일로 교체'}].map(r=>(
+                    <div key={r.label} className="guide-row">
+                      <span style={{fontSize:11,fontWeight:800,padding:'3px 9px',borderRadius:99,color:r.color,background:r.bg,flexShrink:0,minWidth:64,textAlign:'center'}}>{r.label}</span>
+                      <span style={{fontSize:11,color:'rgba(249,168,212,.6)'}}>{r.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="guide-sec">
+                <div className="guide-sec-title">🏷️ 키워드 출처란?</div>
+                <div className="guide-p">키워드를 어떻게 찾았는지 표시해요.</div>
+                <div className="guide-rows">
+                  {[{color:'#10b981',label:'태그',desc:'글에 직접 등록한 해시태그 · 가장 정확'},{color:'#a78bfa',label:'AI',desc:'AI가 제목/내용 분석해 추출 · ⚙️ 설정 필요'},{color:'#777',label:'제목',desc:'글 제목 단어 조합 파싱 · 정확도 보통'}].map(r=>(
+                    <div key={r.label} className="guide-row">
+                      <span style={{fontSize:11,fontWeight:800,padding:'3px 9px',borderRadius:99,color:r.color,background:`${r.color}18`,flexShrink:0,minWidth:46,textAlign:'center'}}>{r.label}</span>
+                      <span style={{fontSize:11,color:'rgba(249,168,212,.6)'}}>{r.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="guide-sec" style={{borderBottom:'none'}}>
+                <div className="guide-sec-title">💡 인사이트 메시지란?</div>
+                <div className="guide-p">각 키워드 상황에 맞는 자동 조언이에요.</div>
+                {[{color:'#10b981',border:'rgba(16,185,129,.3)',bg:'rgba(16,185,129,.08)',label:'🎯 기회!',desc:'경쟁 적고 제목에 키워드 없음 → 제목에 추가하면 상위 가능'},{color:'#60a5fa',border:'rgba(96,165,250,.3)',bg:'rgba(96,165,250,.08)',label:'📝 보강 필요',desc:'제목엔 있는데 미노출 → 본문에 2~3회 추가 + 글 길이 늘리기'},{color:'#ef4444',border:'rgba(239,68,68,.25)',bg:'rgba(239,68,68,.07)',label:'⚠️ 교체 권장',desc:'경쟁 포화 → 더 구체적인 롱테일로 바꾸세요'}].map(r=>(
+                  <div key={r.label} style={{padding:'9px 12px',borderRadius:9,border:`1px solid ${r.border}`,background:r.bg,marginBottom:7}}>
+                    <div style={{fontSize:12,fontWeight:800,color:r.color,marginBottom:2}}>{r.label}</div>
+                    <div style={{fontSize:11,color:'rgba(249,168,212,.55)'}}>{r.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
