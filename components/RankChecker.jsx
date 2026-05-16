@@ -603,6 +603,8 @@ export default function RankChecker() {
     .src-dot { width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px; }
 
     /* ── MOBILE EXPORT BAR (PC hidden) ── */
+    @keyframes exportFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    @keyframes yellowGlow{0%,100%{box-shadow:0 4px 20px rgba(250,204,21,.35),0 0 0 1px rgba(250,204,21,.5)}50%{box-shadow:0 8px 36px rgba(250,204,21,.65),0 0 0 2px rgba(250,204,21,.8),0 0 24px rgba(250,204,21,.2)}}
     .mobile-export-bar { display:none; }
 
     /* ── FLOATING BTN ── */
@@ -689,8 +691,11 @@ export default function RankChecker() {
       .rc-tabs { padding:3px; }
       .rc-tab { padding:6px 12px;font-size:11px; }
       .hdr-export-btn { display:none; }
-      .mobile-export-bar { display:flex;gap:8px;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(15,5,25,.85);backdrop-filter:blur(12px);padding:8px 12px;border-radius:14px;border:1px solid rgba(244,114,182,.2);box-shadow:0 4px 20px rgba(0,0,0,.4); }
-      .mobile-exp-btn { display:flex !important; }
+      .mobile-export-bar { display:flex;flex-direction:column;gap:7px;position:fixed;bottom:18px;left:14px;z-index:200;animation:exportFloat 3s ease-in-out infinite,yellowGlow 3s ease-in-out infinite;border-radius:16px;padding:2px; }
+      .mobile-exp-btn { display:flex !important;align-items:center;gap:6px;padding:9px 14px;border-radius:12px;border:none;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;color:#fff;position:relative;overflow:hidden; }
+      .mobile-exp-btn-pdf { background:linear-gradient(135deg,#a855f7,#7c3aed); }
+      .mobile-exp-btn-csv { background:linear-gradient(135deg,#f59e0b,#d97706); }
+      .mobile-exp-btn svg { width:14px;height:14px;flex-shrink:0; }
     }
     @media(max-width:380px) {
       .stat-num { font-size:20px; }
@@ -1167,11 +1172,17 @@ export default function RankChecker() {
       {/* ─── 가이드 버튼 ─── */}
       {isDone && (
         <div className="mobile-export-bar">
-          <button className="hdr-btn hdr-btn-pink mobile-exp-btn" onClick={() => generatePDF(blogId, posts, rankResults)}>
-            <span>📄</span><span>SEO보고서</span>
+          <button className="mobile-exp-btn mobile-exp-btn-pdf" onClick={() => generatePDF(blogId, posts, rankResults)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>SEO보고서</span>
           </button>
-          <button className="hdr-btn mobile-exp-btn" onClick={() => exportCSV(posts, rankResults)}>
-            <span>📊</span><span>순위저장</span>
+          <button className="mobile-exp-btn mobile-exp-btn-csv" onClick={() => exportCSV(posts, rankResults)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span>순위저장</span>
           </button>
         </div>
       )}
