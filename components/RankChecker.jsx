@@ -602,6 +602,9 @@ export default function RankChecker() {
     .tip-box { padding:12px 14px;background:rgba(244,114,182,.07);border:1px solid rgba(244,114,182,.18);border-radius:12px;font-size:11px;color:var(--text-sub);line-height:1.85; }
     .src-dot { width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px; }
 
+    /* ── MOBILE EXPORT BAR (PC hidden) ── */
+    .mobile-export-bar { display:none; }
+
     /* ── FLOATING BTN ── */
     @keyframes floatAnim{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
     @keyframes pinkGlow{0%,100%{box-shadow:0 4px 24px rgba(244,114,182,.5)}50%{box-shadow:0 8px 40px rgba(244,114,182,.75),0 0 0 8px rgba(244,114,182,.05)}}
@@ -685,6 +688,9 @@ export default function RankChecker() {
       .float-btn { bottom:18px;right:14px;padding:11px 16px;font-size:12px; }
       .rc-tabs { padding:3px; }
       .rc-tab { padding:6px 12px;font-size:11px; }
+      .hdr-export-btn { display:none; }
+      .mobile-export-bar { display:flex;gap:8px;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(15,5,25,.85);backdrop-filter:blur(12px);padding:8px 12px;border-radius:14px;border:1px solid rgba(244,114,182,.2);box-shadow:0 4px 20px rgba(0,0,0,.4); }
+      .mobile-exp-btn { display:flex !important; }
     }
     @media(max-width:380px) {
       .stat-num { font-size:20px; }
@@ -722,10 +728,10 @@ export default function RankChecker() {
           </div>
           <div className="hdr-right">
             {isDone && <>
-              <button className="hdr-btn hdr-btn-pink" onClick={() => generatePDF(blogId, posts, rankResults)}>
+              <button className="hdr-btn hdr-btn-pink hdr-export-btn" onClick={() => generatePDF(blogId, posts, rankResults)}>
                 <span>📄</span><span>SEO보고서</span>
               </button>
-              <button className="hdr-btn" onClick={() => exportCSV(posts, rankResults)}>
+              <button className="hdr-btn hdr-export-btn" onClick={() => exportCSV(posts, rankResults)}>
                 <span>📊</span><span>순위저장</span>
               </button>
             </>}
@@ -1159,6 +1165,17 @@ export default function RankChecker() {
       })()}
 
       {/* ─── 가이드 버튼 ─── */}
+      {isDone && (
+        <div className="mobile-export-bar">
+          <button className="hdr-btn hdr-btn-pink mobile-exp-btn" onClick={() => generatePDF(blogId, posts, rankResults)}>
+            <span>📄</span><span>SEO보고서</span>
+          </button>
+          <button className="hdr-btn mobile-exp-btn" onClick={() => exportCSV(posts, rankResults)}>
+            <span>📊</span><span>순위저장</span>
+          </button>
+        </div>
+      )}
+
       <button className="float-btn" onClick={()=>setShowGuide(g=>!g)}>
         <span>📖</span><span>용어 설명</span>
       </button>
