@@ -2,8 +2,8 @@ import Head from 'next/head';
 import RankChecker from '../components/RankChecker';
 
 export default function Home() {
-  const SITE_URL = 'https://rank-checker-omega.vercel.app';
-  const OG_IMAGE = `${SITE_URL}/api/og-image`;
+  const SITE_URL = 'https://rank.xn--zk5biyyw.com';
+  const OG_IMAGE = `${SITE_URL}/og-image.png`;
 
   return (
     <>
